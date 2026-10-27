@@ -1,0 +1,254 @@
+{
+  "target_session": "2026-10-27",
+  "retrieved_at_utc": "2026-10-27T14:34:33.208945+00:00",
+  "source": "Vietcap trading chart OHLCChart/gap-chart via direct HTTPS",
+  "source_url": "https://trading.vietcap.com.vn/api/chart/OHLCChart/gap-chart",
+  "price_unit": "thousand VND; VCI integer price / 1000",
+  "adjustment_check": "Prior session OHLCV checked against bundled adjusted history",
+  "symbols": [
+    "ACB",
+    "BID",
+    "BSR",
+    "CTG",
+    "FPT",
+    "GAS",
+    "GVR",
+    "HDB",
+    "HPG",
+    "LPB",
+    "MBB",
+    "MCH",
+    "MSN",
+    "MWG",
+    "SAB",
+    "SHB",
+    "SSB",
+    "SSI",
+    "STB",
+    "TCB",
+    "TCX",
+    "VCB",
+    "VHM",
+    "VIB",
+    "VIC",
+    "VJC",
+    "VNM",
+    "VPB",
+    "VPL",
+    "VRE"
+  ],
+  "rows": 30,
+  "sha256": "9ab18324566daf456987f1f694a01d4c73b3e8ed9def6ecd2271e97b7ddccb84",
+  "checks": [
+    {
+      "symbol": "ACB",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "BID",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "BSR",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "CTG",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "FPT",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "GAS",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "GVR",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "HDB",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "HPG",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "LPB",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "MBB",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "MCH",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "MSN",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "MWG",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "SAB",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "SHB",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "SSB",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "SSI",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "STB",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "TCB",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "TCX",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "VCB",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "VHM",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "VIB",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "VIC",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "VJC",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "VNM",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "VPB",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "VPL",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    },
+    {
+      "symbol": "VRE",
+      "overlap_date": "2026-10-26",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "source_latest_date": "2026-10-27"
+    }
+  ]
+}

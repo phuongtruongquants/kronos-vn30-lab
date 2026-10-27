@@ -16,8 +16,6 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 DATA_ROOT = HERE.parent / "vn30_long_20261026" / "data"
-LATEST_CSV = HERE / "data_update_20261026" / "ohlcv_2026-10-26.csv"
-LATEST_MANIFEST = HERE / "data_update_20261026" / "manifest.json"
 MEMBERSHIP = HERE.parent / "vn30_long_20261026" / "membership_intervals_2018_2026.csv"
 UPSTREAM_COMMIT = "67b630e67f6a18c9e9be918d9b4337c960db1e9a"
 MODEL_REVISION = "901c26c1332695a2a8f243eb2f37243a37bea320"
@@ -55,16 +53,32 @@ def current_members() -> list[str]:
     return symbols
 
 
+def updates() -> list[tuple[str, Path, dict]]:
+    """Validated daily overlays, sorted by session; never rewrite the research cache."""
+    result = []
+    for manifest_path in HERE.glob("data_update_*/manifest.json"):
+        manifest = json.loads(manifest_path.read_text())
+        date = manifest["target_session"]
+        csv = manifest_path.parent / f"ohlcv_{date}.csv"
+        if csv.exists():
+            result.append((date, csv, manifest))
+    return sorted(result)
+
+
 def load_stock(symbol: str) -> tuple[pd.DataFrame, dict]:
     if symbol not in current_members():
         raise ValueError("Mã không thuộc danh sách 30 thành viên cuối trong dữ liệu nghiên cứu")
     path = DATA_ROOT / f"{symbol}.csv"
     frame = pd.read_csv(path)
-    if LATEST_CSV.exists() and LATEST_MANIFEST.exists():
-        update = pd.read_csv(LATEST_CSV)
+    latest_update = None
+    for date, csv, manifest in updates():
+        update = pd.read_csv(csv)
         update = update.loc[update["symbol"].eq(symbol)].drop(columns="symbol")
-        if len(update) == 1 and str(frame["time"].iloc[-1])[:10] < str(update["time"].iloc[0])[:10]:
+        if len(update) != 1:
+            raise ValueError(f"Thiếu nến {symbol} ngày {date} trong dữ liệu cập nhật")
+        if str(frame["time"].iloc[-1])[:10] < date:
             frame = pd.concat([frame, update], ignore_index=True)
+            latest_update = manifest
     required = {"time", "open", "high", "low", "close", "volume"}
     if not required.issubset(frame):
         raise ValueError(f"Thiếu cột dữ liệu: {required - set(frame)}")
@@ -73,18 +87,16 @@ def load_stock(symbol: str) -> tuple[pd.DataFrame, dict]:
     frame = frame.sort_values("time").drop_duplicates("date", keep=False).set_index("date", drop=False)
     metadata_path = DATA_ROOT / f"{symbol}.metadata.json"
     metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
-    if LATEST_CSV.exists() and LATEST_MANIFEST.exists() and frame.index[-1] == "2026-10-26":
-        updated = json.loads(LATEST_MANIFEST.read_text())
-        metadata = {**metadata, "retrieved_at_utc": updated["retrieved_at_utc"],
-                    "latest_source": updated["source"], "last_date": updated["target_session"]}
+    if latest_update is not None and frame.index[-1] == latest_update["target_session"]:
+        metadata = {**metadata, "retrieved_at_utc": latest_update["retrieved_at_utc"],
+                    "latest_source": latest_update["source"], "last_date": latest_update["target_session"]}
     return frame, metadata
 
 
 def load_calendar() -> list[str]:
     calendar = pd.read_csv(DATA_ROOT / "VN30_calendar.csv")
     dates = calendar["time"].astype(str).tolist()
-    if LATEST_CSV.exists() and LATEST_MANIFEST.exists():
-        dates.append("2026-10-26")
+    dates.extend(date for date, _, _ in updates())
     return sorted(set(dates))
 
 
@@ -173,7 +185,8 @@ def load_predictor():
     return predictor, device, threading.Lock()
 
 
-def predict(prepared: Prepared, predictor, lock: threading.Lock, seed: int = 42) -> pd.DataFrame:
+def predict(prepared: Prepared, predictor, lock: threading.Lock, seed: int = 42,
+            temperature: float = T, top_p: float = TOP_P) -> pd.DataFrame:
     import torch
 
     with lock, torch.inference_mode():
@@ -184,9 +197,9 @@ def predict(prepared: Prepared, predictor, lock: threading.Lock, seed: int = 42)
             pd.Series(prepared.history["time"].tolist()),
             prepared.target_times,
             pred_len=HORIZON,
-            T=T,
-            top_p=TOP_P,
-            sample_count=SAMPLE_COUNT,
+            T=temperature,
+            top_p=top_p,
+            sample_count=1,
             verbose=False,
         )
     if len(output) != HORIZON or not np.isfinite(output[["open", "high", "low", "close"]].to_numpy(float)).all():
