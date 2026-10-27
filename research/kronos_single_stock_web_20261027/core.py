@@ -33,8 +33,6 @@ class Prepared:
     cutoff: str
     history: pd.DataFrame
     target_times: pd.Series
-    actual: pd.DataFrame
-    target_dates_estimated: bool
     source_metadata: dict
 
 
@@ -65,10 +63,12 @@ def updates() -> list[tuple[str, Path, dict]]:
     return sorted(result)
 
 
-def load_stock(symbol: str) -> tuple[pd.DataFrame, dict]:
-    if symbol not in current_members():
+def load_stock(symbol: str, *, allow_historical_member: bool = False) -> tuple[pd.DataFrame, dict]:
+    if not allow_historical_member and symbol not in current_members():
         raise ValueError("Mã không thuộc danh sách 30 thành viên cuối trong dữ liệu nghiên cứu")
     path = DATA_ROOT / f"{symbol}.csv"
+    if not path.exists():
+        raise ValueError(f"Chưa có tệp giá cho mã {symbol}")
     frame = pd.read_csv(path)
     latest_update = None
     for date, csv, manifest in updates():
@@ -125,16 +125,22 @@ def prepare(symbol: str, cutoff: str) -> Prepared:
             or (history["high"] < history[["open", "close"]].max(axis=1)).any()):
         raise ValueError("OHLC đầu vào không nhất quán")
 
-    future_dates = sessions[pos + 1 : pos + HORIZON + 1]
-    estimated = len(future_dates) < HORIZON
-    if estimated:
-        remain = HORIZON - len(future_dates)
-        start = pd.Timestamp(future_dates[-1] if future_dates else cutoff) + pd.Timedelta(days=1)
-        future_dates += pd.bdate_range(start, periods=remain).strftime("%Y-%m-%d").tolist()
+    # Forecast dates must be knowable at cutoff. Never pass the realized future
+    # exchange calendar (which can include unannounced closures) to the model.
+    future_dates = pd.bdate_range(pd.Timestamp(cutoff) + pd.Timedelta(days=1),
+                                  periods=HORIZON).strftime("%Y-%m-%d").tolist()
     target_times = pd.Series(pd.to_datetime([f"{d} 07:00:00+07:00" for d in future_dates]))
-    available = [date for date in future_dates if date in frame.index]
-    actual = frame.loc[available].copy() if available else frame.iloc[0:0].copy()
-    return Prepared(symbol, cutoff, history, target_times, actual, estimated, metadata)
+    return Prepared(symbol, cutoff, history, target_times, metadata)
+
+
+def realized_path(symbol: str, cutoff: str) -> pd.DataFrame:
+    """Evaluation only. This function is never called by the inference worker."""
+    frame, _ = load_stock(symbol, allow_historical_member=True)
+    sessions = load_calendar()
+    if cutoff not in sessions:
+        raise ValueError("Ngày chốt không có trong lịch phiên")
+    dates = [date for date in sessions[sessions.index(cutoff) + 1:] if date in frame.index]
+    return frame.loc[dates[:HORIZON]].copy() if dates else frame.iloc[0:0].copy()
 
 
 def locate_upstream() -> Path:

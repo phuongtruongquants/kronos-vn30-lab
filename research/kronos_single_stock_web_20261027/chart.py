@@ -12,7 +12,9 @@ COLORS = ["#e24e45", "#9b5de5", "#f49b3f", "#09a6a6", "#d15c90", "#5968d9", "#9b
 
 def chart_html(history: pd.DataFrame, forecasts: pd.DataFrame, actual: pd.DataFrame) -> str:
     visible_history = history.tail(90)
-    actual_by_date = {str(row.date): row for row in actual.itertuples()}
+    # Compare horizon by ordinal session. Predicted weekdays are an ex-ante
+    # approximation and need not match the realized exchange calendar.
+    actual_by_step = list(actual.itertuples())
     paths = []
     for index, (seed, frame) in enumerate(forecasts.groupby("seed", sort=True)):
         frame = frame.sort_values("date")
@@ -28,9 +30,10 @@ def chart_html(history: pd.DataFrame, forecasts: pd.DataFrame, actual: pd.DataFr
          "l": float(row.low), "c": float(row.close), "v": float(row.volume), "kind": "known"}
         for row in visible_history.itertuples()
     ]
-    for date in future_dates:
-        actual_row = actual_by_date.get(date)
+    for step, date in enumerate(future_dates):
+        actual_row = actual_by_step[step] if step < len(actual_by_step) else None
         rows.append({"date": date, "kind": "future", "actual": None if actual_row is None else {
+            "observed_date": str(actual_row.date),
             "o": float(actual_row.open), "h": float(actual_row.high),
             "l": float(actual_row.low), "c": float(actual_row.close),
             "v": float(actual_row.volume),
@@ -87,7 +90,7 @@ function indexAt(clientX){const r=canvas.getBoundingClientRect(),g=geom();return
 canvas.addEventListener('wheel',e=>{e.preventDefault();const r=canvas.getBoundingClientRect(),g=geom();zoom(e.deltaY<0?.8:1.25,clamp((e.clientX-r.left-g.left)/g.pw,0,1));},{passive:false});
 canvas.addEventListener('pointerdown',e=>{dragging=true;dragX=e.clientX;dragStart=start;canvas.setPointerCapture(e.pointerId);canvas.style.cursor='grabbing';});
 canvas.addEventListener('pointerup',()=>{dragging=false;canvas.style.cursor='crosshair';});
-canvas.addEventListener('pointermove',e=>{if(dragging){const g=geom();start=clamp(Math.round(dragStart-(e.clientX-dragX)/g.pw*count),0,rows.length-count);draw();return;}hover=indexAt(e.clientX);const r=rows[hover],a=r.kind==='known'?r:r.actual,rect=canvas.getBoundingClientRect();let html='<b>'+r.date+'</b>';if(a)html+='<br>Thực tế: '+money(a.c)+' · KL '+compact(a.v);if(hover>cutoff)for(const p of paths){const v=p.points[hover-cutoff-1];if(v)html+='<br><span style="color:'+p.color+'">Seed '+p.seed+': '+money(v.c)+' · KL '+compact(v.v)+'</span>';}tip.innerHTML=html;tip.style.display='block';tip.style.left=clamp(e.clientX-rect.left+15,80,Math.max(80,rect.width-210))+'px';tip.style.top=clamp(e.clientY-rect.top+12,8,Math.max(8,rect.height-140))+'px';draw();});
+canvas.addEventListener('pointermove',e=>{if(dragging){const g=geom();start=clamp(Math.round(dragStart-(e.clientX-dragX)/g.pw*count),0,rows.length-count);draw();return;}hover=indexAt(e.clientX);const r=rows[hover],a=r.kind==='known'?r:r.actual,rect=canvas.getBoundingClientRect();let html='<b>'+r.date+(r.kind==='future'?' (ước tính)':'')+'</b>';if(a)html+='<br>Thực tế '+(a.observed_date||r.date)+': '+money(a.c)+' · KL '+compact(a.v);if(hover>cutoff)for(const p of paths){const v=p.points[hover-cutoff-1];if(v)html+='<br><span style="color:'+p.color+'">Seed '+p.seed+': '+money(v.c)+' · KL '+compact(v.v)+'</span>';}tip.innerHTML=html;tip.style.display='block';tip.style.left=clamp(e.clientX-rect.left+15,80,Math.max(80,rect.width-210))+'px';tip.style.top=clamp(e.clientY-rect.top+12,8,Math.max(8,rect.height-140))+'px';draw();});
 canvas.addEventListener('pointerleave',()=>{if(!dragging){hover=-1;tip.style.display='none';draw();}});
 document.getElementById('plus').onclick=()=>zoom(.8);document.getElementById('minus').onclick=()=>zoom(1.25);document.getElementById('reset').onclick=()=>{count=Math.min(rows.length,45);start=Math.max(0,rows.length-count);draw();};document.getElementById('view').onclick=e=>{candleMode=!candleMode;e.target.textContent=candleMode?'Đường':'Nến';draw();};
 new ResizeObserver(size).observe(canvas);size();
