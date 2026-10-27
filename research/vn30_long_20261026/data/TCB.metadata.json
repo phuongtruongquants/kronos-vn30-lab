@@ -1,0 +1,36 @@
+{
+  "symbol": "TCB",
+  "rows": 2097,
+  "first_date": "2018-06-04",
+  "last_date": "2026-10-23",
+  "source": "market.equity.ohlcv via vietcap.com.vn, retrieved 2026-10-26T04:21:31.355000Z (vnstock, source=vci)",
+  "retrieved_at_utc": "2026-10-26T04:21:31.654835+00:00",
+  "attrs": {
+    "access_domain": [
+      "vietcap.com.vn"
+    ],
+    "access_method": [
+      "POST"
+    ],
+    "access_protocol": "https",
+    "algorithm_participation": "Y\u00eau c\u1ea7u \u0111i t\u1eeb m\u00e1y ng\u01b0\u1eddi d\u00f9ng t\u1edbi ngu\u1ed3n. vnstock \u0111\u1ecdc ph\u1ea3n h\u1ed3i th\u00f4 c\u1ee7a ngu\u1ed3n r\u1ed3i t\u00e1i t\u1ea1o th\u00e0nh b\u1ea3ng d\u1eef li\u1ec7u c\u00f3 c\u1ea5u tr\u00fac \u0111\u1ec3 l\u1eadp tr\u00ecnh: \u0111\u1eb7t t\u00ean c\u1ed9t theo chu\u1ea9n chung, \u00e9p ki\u1ec3u, quy \u0111\u1ed5i \u0111\u01a1n v\u1ecb v\u00e0 m\u00fai gi\u1edd, gh\u00e9p c\u00e1c trang, \u0111\u1ed1i chi\u1ebfu m\u00e3, k\u1ef3 b\u00e1o c\u00e1o v\u00e0 c\u00e1c d\u00f2ng t\u01b0\u01a1ng \u0111\u01b0\u01a1ng. C\u00e1c b\u01b0\u1edbc n\u00e0y c\u00f3 suy di\u1ec5n v\u00e0 \u0111\u1ed1i chi\u1ebfu n\u00ean k\u1ebft qu\u1ea3 kh\u00f4ng ph\u1ea3i l\u00fac n\u00e0o c\u0169ng kh\u1edbp ho\u00e0n to\u00e0n v\u1edbi d\u1eef li\u1ec7u g\u1ed1c; khi ph\u00e1t hi\u1ec7n sai l\u1ec7ch, vnstock x\u00e1c th\u1ef1c r\u1ed3i s\u1eeda trong b\u1ea3n c\u1eadp nh\u1eadt th\u01b0 vi\u1ec7n g\u1ea7n nh\u1ea5t.",
+    "algorithm_role": "retrieve_normalize",
+    "disclaimer": "vnstock l\u00e0 c\u00f4ng c\u1ee5 ph\u1ea7n m\u1ec1m ch\u1ea1y tr\u00ean m\u00e1y ng\u01b0\u1eddi d\u00f9ng: y\u00eau c\u1ea7u xu\u1ea5t ph\u00e1t t\u1eeb thi\u1ebft b\u1ecb c\u1ee7a ng\u01b0\u1eddi d\u00f9ng t\u1edbi ngu\u1ed3n, vnstock \u0111\u1ecdc ph\u1ea3n h\u1ed3i r\u1ed3i t\u00e1i t\u1ea1o th\u00e0nh b\u1ea3ng d\u1eef li\u1ec7u c\u00f3 c\u1ea5u tr\u00fac \u0111\u1ec3 l\u1eadp tr\u00ecnh. vnstock kh\u00f4ng ph\u1ea3i \u0111\u01a1n v\u1ecb cung c\u1ea5p d\u1eef li\u1ec7u v\u00e0 kh\u00f4ng t\u01b0 v\u1ea5n \u0111\u1ea7u t\u01b0 t\u00e0i ch\u00ednh. Vi\u1ec7c t\u00e1i t\u1ea1o c\u00f3 suy di\u1ec5n v\u00e0 \u0111\u1ed1i chi\u1ebfu n\u00ean d\u1eef li\u1ec7u kh\u00f4ng ph\u1ea3i l\u00fac n\u00e0o c\u0169ng ch\u00ednh x\u00e1c tuy\u1ec7t \u0111\u1ed1i; khi ph\u00e1t hi\u1ec7n sai l\u1ec7ch, vnstock x\u00e1c th\u1ef1c r\u1ed3i s\u1eeda trong b\u1ea3n c\u1eadp nh\u1eadt th\u01b0 vi\u1ec7n g\u1ea7n nh\u1ea5t. C\u00e1c li\u00ean k\u1ebft \u0111i\u1ec1u kho\u1ea3n v\u00e0 th\u00f4ng s\u1ed1 t\u1ec7p robots.txt ch\u1ec9 mang t\u00ednh tham kh\u1ea3o chung, c\u00f3 th\u1ec3 thay \u0111\u1ed5i theo th\u1eddi gian m\u00e0 kh\u00f4ng b\u00e1o tr\u01b0\u1edbc v\u00e0 kh\u00f4ng h\u1eb3n \u00e1p d\u1ee5ng tr\u1ef1c ti\u1ebfp cho t\u1eebng trang ho\u1eb7c \u0111\u1ecba ch\u1ec9 truy xu\u1ea5t c\u1ee5 th\u1ec3; ng\u01b0\u1eddi d\u00f9ng t\u1ef1 \u0111\u1ed1i chi\u1ebfu v\u00e0 ch\u1ecbu tr\u00e1ch nhi\u1ec7m tu\u00e2n th\u1ee7 quy \u0111\u1ecbnh c\u1ee7a b\u00ean cung c\u1ea5p ngu\u1ed3n.",
+    "end": "2026-10-23",
+    "interval": "1D",
+    "is_tool_only": true,
+    "latency_ms": 257,
+    "length": 2097,
+    "organisation": "C\u00f4ng ty CP Ch\u1ee9ng kho\u00e1n Vietcap",
+    "request_count": 1,
+    "requested_at": "2026-10-26T04:21:31.355Z",
+    "robots_txt": "trading: User-agent *, Allow /, Crawl-delay 10. www: Disallow /cgi-bin/ only.",
+    "route": "market.equity.ohlcv",
+    "source": "vci",
+    "source_name": "Vietcap (VCI)",
+    "start": "2018-01-01",
+    "symbol": "TCB",
+    "terms_url": "https://www.vietcap.com.vn/dieu-khoan-su-dung-chinh-sach-bao-mat",
+    "tool": "vnstock"
+  }
+}
