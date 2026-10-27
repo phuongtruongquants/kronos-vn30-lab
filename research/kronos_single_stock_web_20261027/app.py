@@ -105,7 +105,8 @@ else:
         low_close, high_close = float(terminal["close"].min()), float(terminal["close"].max())
         realized = float(prepared.actual["close"].iloc[-1]) if len(prepared.actual) == HORIZON else None
         st.markdown("### Nhiều đường cho một mã")
-        a, b, c, d = st.columns(4)
+        a, b = st.columns(2)
+        c, d = st.columns(2)
         a.metric("Giá chốt đầu vào", f"{last_close:,.2f}")
         b.metric("Trung vị giá phiên 10", f"{median_close:,.2f}")
         c.metric("Khoảng các mẫu phiên 10", f"{low_close:,.2f}–{high_close:,.2f}")
@@ -135,6 +136,7 @@ st.markdown(
 )
 st.caption("Win rate = số lần dự báo đúng dấu thay đổi giá đóng cửa phiên 10 / số cửa sổ. "
            "Seed chỉ thay đổi phép lấy mẫu, không phải trọng số mô hình. Không chọn lại seed hoặc T/top-p sau khi xem cửa sổ kiểm tra.")
+st.caption("Đối chiếu win rate trong cùng môi trường chạy và cùng bản dữ liệu/mô hình; cùng seed có thể cho mẫu khác trên hệ điều hành hoặc phiên bản thư viện khác.")
 audit_dates = fixed_cutoffs(symbol)
 st.caption("Mốc lịch sử áp dụng cho mã đang chọn: " + (", ".join(audit_dates) if audit_dates else "chưa đủ dữ liệu"))
 audit_key = (symbol, tuple(audit_dates), AUDIT_SEEDS, T, TOP_P, frame.index[-1])

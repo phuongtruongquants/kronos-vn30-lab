@@ -55,7 +55,7 @@ const data=__DATA__, rows=data.rows, paths=data.paths, cutoff=data.cutoff;
 const canvas=document.getElementById('chart'),ctx=canvas.getContext('2d'),tip=document.getElementById('tip'),range=document.getElementById('range');
 const legend=document.getElementById('legend');
 legend.innerHTML='<span><i class="sw" style="background:#2858c8"></i>Giá/khối lượng thực tế</span>'+paths.map(p=>'<span><i class="sw" style="background:'+p.color+'"></i>Seed '+p.seed+'</span>').join('')+'<span>Vùng tô = khoảng các mẫu, không phải độ tin cậy</span>';
-let count=Math.min(rows.length,65),start=Math.max(0,rows.length-count),candleMode=false,dragging=false,dragX=0,dragStart=0,hover=-1;
+let count=Math.min(rows.length,45),start=Math.max(0,rows.length-count),candleMode=false,dragging=false,dragX=0,dragStart=0,hover=-1;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));const money=x=>Number(x).toFixed(2);const compact=x=>x>=1e6?(x/1e6).toFixed(1)+'tr':x>=1e3?(x/1e3).toFixed(0)+'k':Math.round(x).toString();
 function geom(){const w=canvas.clientWidth,h=canvas.clientHeight,left=75,right=24;return {w,h,left,right,pw:w-left-right,pt:27,pb:352,vt:396,vb:h-35};}
 function x(i,g){return g.left+(i-start+.5)*g.pw/count;}
@@ -89,7 +89,7 @@ canvas.addEventListener('pointerdown',e=>{dragging=true;dragX=e.clientX;dragStar
 canvas.addEventListener('pointerup',()=>{dragging=false;canvas.style.cursor='crosshair';});
 canvas.addEventListener('pointermove',e=>{if(dragging){const g=geom();start=clamp(Math.round(dragStart-(e.clientX-dragX)/g.pw*count),0,rows.length-count);draw();return;}hover=indexAt(e.clientX);const r=rows[hover],a=r.kind==='known'?r:r.actual,rect=canvas.getBoundingClientRect();let html='<b>'+r.date+'</b>';if(a)html+='<br>Thực tế: '+money(a.c)+' · KL '+compact(a.v);if(hover>cutoff)for(const p of paths){const v=p.points[hover-cutoff-1];if(v)html+='<br><span style="color:'+p.color+'">Seed '+p.seed+': '+money(v.c)+' · KL '+compact(v.v)+'</span>';}tip.innerHTML=html;tip.style.display='block';tip.style.left=clamp(e.clientX-rect.left+15,80,Math.max(80,rect.width-210))+'px';tip.style.top=clamp(e.clientY-rect.top+12,8,Math.max(8,rect.height-140))+'px';draw();});
 canvas.addEventListener('pointerleave',()=>{if(!dragging){hover=-1;tip.style.display='none';draw();}});
-document.getElementById('plus').onclick=()=>zoom(.8);document.getElementById('minus').onclick=()=>zoom(1.25);document.getElementById('reset').onclick=()=>{count=Math.min(rows.length,65);start=Math.max(0,rows.length-count);draw();};document.getElementById('view').onclick=e=>{candleMode=!candleMode;e.target.textContent=candleMode?'Đường':'Nến';draw();};
+document.getElementById('plus').onclick=()=>zoom(.8);document.getElementById('minus').onclick=()=>zoom(1.25);document.getElementById('reset').onclick=()=>{count=Math.min(rows.length,45);start=Math.max(0,rows.length-count);draw();};document.getElementById('view').onclick=e=>{candleMode=!candleMode;e.target.textContent=candleMode?'Đường':'Nến';draw();};
 new ResizeObserver(size).observe(canvas);size();
 </script></body></html>"""
     return template.replace("__DATA__", dataset)
