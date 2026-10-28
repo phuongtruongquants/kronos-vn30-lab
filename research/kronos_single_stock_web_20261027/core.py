@@ -16,6 +16,8 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 DATA_ROOT = HERE.parent / "vn30_long_20261026" / "data"
+EXTRA_DATA_ROOT = HERE / "extra_stock_data"
+EXTRA_STOCKS = ("DGW",)
 MEMBERSHIP = HERE.parent / "vn30_long_20261026" / "membership_intervals_2018_2026.csv"
 UPSTREAM_COMMIT = "67b630e67f6a18c9e9be918d9b4337c960db1e9a"
 MODEL_REVISION = "901c26c1332695a2a8f243eb2f37243a37bea320"
@@ -64,14 +66,15 @@ def updates() -> list[tuple[str, Path, dict]]:
 
 
 def load_stock(symbol: str, *, allow_historical_member: bool = False) -> tuple[pd.DataFrame, dict]:
-    if not allow_historical_member and symbol not in current_members():
-        raise ValueError("Mã không thuộc danh sách 30 thành viên cuối trong dữ liệu nghiên cứu")
-    path = DATA_ROOT / f"{symbol}.csv"
+    if not allow_historical_member and symbol not in current_members() and symbol not in EXTRA_STOCKS:
+        raise ValueError("Mã không thuộc danh sách 30 VN30 hoặc danh sách bổ sung")
+    root = EXTRA_DATA_ROOT if symbol in EXTRA_STOCKS else DATA_ROOT
+    path = root / f"{symbol}.csv"
     if not path.exists():
         raise ValueError(f"Chưa có tệp giá cho mã {symbol}")
     frame = pd.read_csv(path)
     latest_update = None
-    for date, csv, manifest in updates():
+    for date, csv, manifest in ([] if symbol in EXTRA_STOCKS else updates()):
         update = pd.read_csv(csv)
         update = update.loc[update["symbol"].eq(symbol)].drop(columns="symbol")
         if len(update) != 1:
@@ -85,7 +88,7 @@ def load_stock(symbol: str, *, allow_historical_member: bool = False) -> tuple[p
     frame["time"] = pd.to_datetime(frame["time"])
     frame["date"] = frame["time"].dt.strftime("%Y-%m-%d")
     frame = frame.sort_values("time").drop_duplicates("date", keep=False).set_index("date", drop=False)
-    metadata_path = DATA_ROOT / f"{symbol}.metadata.json"
+    metadata_path = root / f"{symbol}.metadata.json"
     metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {}
     if latest_update is not None and frame.index[-1] == latest_update["target_session"]:
         metadata = {**metadata, "retrieved_at_utc": latest_update["retrieved_at_utc"],
@@ -103,7 +106,7 @@ def load_calendar() -> list[str]:
 def eligible_cutoffs(symbol: str) -> list[str]:
     frame, _ = load_stock(symbol)
     sessions = load_calendar()
-    valid = set(frame.index)
+    valid = set(frame.index[frame.volume.gt(0)])
     return [sessions[i] for i in range(LOOKBACK - 1, len(sessions))
             if all(date in valid for date in sessions[i - LOOKBACK + 1 : i + 1])]
 

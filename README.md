@@ -1,8 +1,10 @@
 # Kronos Lab · VN30
 
-Interactive one-stock-at-a-time Kronos-small forecasts for the 30 VN30 constituents in the research snapshot. Historical OHLCV data and verified updates through **2026-10-27** are bundled for reproducibility. Prices are adjusted and shown in thousands of VND. This is a model demo, not a trading recommendation.
+Interactive one-stock-at-a-time Kronos-small forecasts for the 30 VN30 constituents in the research snapshot plus **DGW as a separately labeled extra stock**. Historical OHLCV data through **2026-10-27** are bundled for reproducibility. Prices are shown in thousands of VND. This is a model demo, not a trading recommendation.
 
 The app displays 1, 3, or 5 independently sampled paths (one fixed seed per path), an interactive price and volume chart with predicted OHLC candles, and two separate evaluations. The exploratory retrospective replays fixed 10-session forecasts from July 2025 on the 30-stock snapshot and compares them with later prices and simple baselines. It does not establish point-in-time out-of-sample performance: historical price vintages and historical index membership are unavailable. The forward ledger seals forecasts before their results exist and will only report a win rate after all 10 future sessions are observed.
+
+DGW uses a separate VCI price snapshot and a separate 33-window retrospective with the same seed and horizon settings. It is excluded from the 30-stock aggregate and from the sealed forward ledger. “Always up” predicts a positive 10-session return at every cutoff; “10-session momentum” predicts the next 10-session direction will match the previous 10-session direction. These are comparison rules, not the five sample paths on the chart.
 
 Entrypoint: `research/kronos_single_stock_web_20261027/app.py`
 

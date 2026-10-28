@@ -17,6 +17,7 @@ sys.path.insert(0, str(APP))
 import core  # noqa: E402
 import forward  # noqa: E402
 import retrospective  # noqa: E402
+import extra_replay  # noqa: E402
 
 
 class LeakageBoundaryTest(unittest.TestCase):
@@ -88,6 +89,36 @@ class LeakageBoundaryTest(unittest.TestCase):
         for seed in manifest["seeds"]:
             self.assertEqual(int(counts.loc[seed, "sum"]), int(summary.loc[seed, "correct"]))
             self.assertEqual(int(counts.loc[seed, "size"]), int(summary.loc[seed, "samples"]))
+
+    def test_dgw_replay_is_separate_and_recomputable(self):
+        self.assertEqual(len(core.current_members()), 30)
+        self.assertNotIn("DGW", core.current_members())
+        frame, metadata = core.load_stock("DGW")
+        self.assertEqual(frame.index[-1], "2026-10-27")
+        self.assertEqual(len(frame), metadata["rows"])
+        data_path = core.EXTRA_DATA_ROOT / "DGW.csv"
+        self.assertEqual(hashlib.sha256(data_path.read_bytes()).hexdigest(), metadata["sha256"])
+        self.assertEqual(len(core.prepare("DGW", "2026-10-27").history), 90)
+        run = extra_replay.RUN
+        manifest = json.loads((run / "manifest.json").read_text())
+        self.assertEqual(manifest["symbol"], "DGW")
+        self.assertEqual(manifest["data_sha256"], metadata["sha256"])
+        for name, digest in manifest["file_sha256"].items():
+            self.assertEqual(hashlib.sha256((run / f"{name}.csv").read_bytes()).hexdigest(), digest)
+        inputs = pd.read_csv(run / "inputs.csv")
+        self.assertTrue((inputs.date <= inputs.cutoff).all())
+        forecasts = pd.read_csv(run / "forecasts.csv")
+        outcomes = pd.read_csv(run / "outcomes.csv")
+        summary = pd.read_csv(run / "summary.csv").set_index("seed")
+        terminal = forecasts.sort_values("date").groupby(["cutoff", "seed"]).tail(1)
+        joined = terminal.merge(outcomes[["cutoff", "last_close", "actual_return"]],
+                                on="cutoff", validate="many_to_one")
+        hits = (np.sign(joined.close / joined.last_close - 1)
+                == np.sign(joined.actual_return)).astype(int)
+        for seed in manifest["seeds"]:
+            subset = joined.seed.eq(seed)
+            self.assertEqual(int(hits[subset].sum()), int(summary.loc[seed, "correct"]))
+            self.assertEqual(int(subset.sum()), int(summary.loc[seed, "samples"]))
 
 
 if __name__ == "__main__":

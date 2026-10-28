@@ -1,0 +1,13 @@
+{
+  "symbol": "DGW",
+  "rows": 2809,
+  "first_date": "2015-08-03",
+  "last_date": "2026-10-27",
+  "source": "Vietcap trading chart OHLCChart/gap-chart via direct HTTPS",
+  "source_url": "https://trading.vietcap.com.vn/api/chart/OHLCChart/gap-chart",
+  "retrieved_at_utc": "2026-10-28T02:46:35.410825+00:00",
+  "price_unit": "thousand VND; VCI integer price / 1000",
+  "adjustment": "Current source snapshot; historical as-of vintages unavailable",
+  "zero_volume_bars": 6,
+  "sha256": "26a0dc410c5dd86816bf6d7169d19efaa5c29b5b0d33c6ef3e7e41af82f332cf"
+}

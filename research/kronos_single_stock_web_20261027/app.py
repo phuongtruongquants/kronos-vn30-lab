@@ -19,7 +19,8 @@ import streamlit.components.v1 as components
 import core as core_module
 importlib.reload(core_module)
 from chart import chart_html
-from core import HORIZON, LOOKBACK, MODEL_REVISION, T, TOP_P, current_members, eligible_cutoffs, load_stock, prepare, realized_path
+from core import EXTRA_STOCKS, HORIZON, LOOKBACK, MODEL_REVISION, T, TOP_P, current_members, eligible_cutoffs, load_stock, prepare, realized_path
+from extra_replay import RUN as DGW_RUN
 from forward import LEDGER, evaluate, sha256
 from retrospective import RUN as RETRO_RUN
 
@@ -57,14 +58,39 @@ def run_kronos(symbol: str, cutoffs: list[str], seeds: list[int], temperature: f
         return pd.read_csv(output)
 
 
+def show_stock_replay(symbol: str, stock_summary: pd.DataFrame,
+                      stock_panel: pd.DataFrame, stock_outcomes: pd.DataFrame) -> None:
+    st.markdown(f"**Riêng {symbol}**")
+    summary = stock_summary[["seed", "correct", "samples", "win_rate"]].copy()
+    summary["win_rate"] = summary.win_rate.map(lambda value: f"{value:.1%}")
+    st.dataframe(summary.rename(columns={"seed": "Seed", "correct": "Đúng hướng",
+                                         "samples": "Số mẫu", "win_rate": "Tỷ lệ đúng"}),
+                 use_container_width=True, hide_index=True)
+    st.markdown(f"**Từng lần dự báo của {symbol}**")
+    trials = stock_panel[["cutoff", "seed", "forecast_return", "actual_return", "hit"]].copy()
+    trials = trials.merge(stock_outcomes[["cutoff", "forecast_date_10", "actual_date_10"]],
+                          on="cutoff", validate="many_to_one")
+    trials["forecast_return"] = trials.forecast_return.map(lambda value: f"{value:+.2%}")
+    trials["actual_return"] = trials.actual_return.map(lambda value: f"{value:+.2%}")
+    trials["hit"] = trials.hit.map({1: "Đúng", 0: "Sai"})
+    st.dataframe(trials.rename(columns={"cutoff": "Ngày chốt", "seed": "Seed",
+                                        "forecast_return": "Dự báo phiên 10",
+                                        "actual_return": "Thực tế phiên 10",
+                                        "forecast_date_10": "Ngày dự báo ước tính",
+                                        "actual_date_10": "Ngày thực tế", "hit": "Hướng"}),
+                 use_container_width=True, hide_index=True)
+
+
 st.markdown('<div class="eyebrow">Thử riêng mô hình · không có chiến lược giao dịch</div>', unsafe_allow_html=True)
 st.title("Kronos Lab")
-st.markdown('<div class="subtle">Chọn một cổ phiếu VN30 và xem các đường dự báo 10 phiên từ 90 nến. Kết quả đáng tin cậy phải được lưu trước khi có giá tương lai.</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtle">Chọn một trong 30 cổ phiếu VN30 hoặc DGW để xem các đường dự báo 10 phiên từ 90 nến. Kết quả đáng tin cậy phải được lưu trước khi có giá tương lai.</div>', unsafe_allow_html=True)
 
 members = current_members()
 with st.sidebar:
     st.markdown("## Thiết lập dự báo")
-    symbol = st.selectbox("Cổ phiếu", members, index=members.index("FPT"))
+    symbol = st.selectbox("Cổ phiếu", sorted(members + list(EXTRA_STOCKS)),
+                          index=sorted(members + list(EXTRA_STOCKS)).index("FPT"),
+                          format_func=lambda ticker: f"{ticker} · mã bổ sung ngoài VN30" if ticker in EXTRA_STOCKS else ticker)
     frame, metadata = load_stock(symbol)
     dates = eligible_cutoffs(symbol)
     latest = st.toggle("Dùng phiên mới nhất trong dữ liệu", value=True)
@@ -78,9 +104,10 @@ with st.sidebar:
         st.caption("Mỗi seed được chạy riêng với sample_count=1. `sample_count>1` trong Kronos sẽ lấy trung bình, không trả từng đường.")
         st.caption("T=0,6 là cấu hình demo; mặc định `predict()` của Kronos là T=1,0. Top-p=0,9 là mặc định của `predict()`.")
     run = st.button("Chạy dự báo Kronos", type="primary", use_container_width=True)
-    source = "Vietcap (VCI)" if metadata.get("latest_source") else "Vietcap (VCI) qua Vnstock"
+    source = ("Vietcap (VCI) trực tiếp" if symbol in EXTRA_STOCKS else
+              "Vietcap (VCI)" if metadata.get("latest_source") else "Vietcap (VCI) qua Vnstock")
     st.caption(f"Dữ liệu {symbol} tới **{frame.index[-1]}** · nguồn {source} · truy hồi {metadata.get('retrieved_at_utc','không rõ')[:10]}.")
-    st.caption("Rổ 30 mã theo kỳ thành viên bắt đầu 03/08/2026 trong bộ nghiên cứu.")
+    st.caption("Rổ 30 mã theo kỳ thành viên bắt đầu 03/08/2026; DGW là mã bổ sung ngoài rổ.")
 
 st.write("")
 left, right, third = st.columns(3)
@@ -136,8 +163,8 @@ else:
         st.error(f"Không hiển thị được dự báo: {exc}")
 
 st.markdown("### Giả lập hồi cứu trên giá lịch sử")
-st.caption("Cố định lịch từ 01/07/2025 đến 27/10/2026, dự báo 10 phiên sau mỗi 10 phiên, ba seed 42–44. Không chọn seed thắng từ kết quả. Chỉ loại cửa sổ thiếu 90 nến đầu vào hoặc 10 phiên kết quả. Chấm theo thứ tự phiên; ngày dự báo có thể lệch lịch giao dịch quanh ngày nghỉ.")
-st.warning("Đây là **hồi cứu thăm dò**, không phải win rate ngoài mẫu chống leakage hoàn toàn: giá VCI/Vnstock đã điều chỉnh được truy hồi vào 26/10/2026, và 30 mã là thành viên rổ tháng 8/2026, không phải rổ tại từng mốc cũ. Tải thêm cùng loại giá lịch sử không khôi phục được phiên bản dữ liệu thật sự có ở mỗi ngày quá khứ.")
+st.caption("Cố định lịch từ 01/07/2025 đến 27/10/2026, dự báo 10 phiên sau mỗi 10 phiên, ba seed 42–44. Không chọn seed thắng từ kết quả. Chỉ loại cửa sổ thiếu 90 nến đầu vào, có nến đầu vào không hợp lệ hoặc thiếu 10 phiên kết quả. Chấm theo thứ tự phiên; ngày dự báo có thể lệch lịch giao dịch quanh ngày nghỉ.")
+st.warning("Đây là **hồi cứu thăm dò**, không phải win rate ngoài mẫu chống leakage hoàn toàn: giá VCI/Vnstock của 30 mã được truy hồi 26/10/2026 và bổ sung 27/10; DGW được lấy 28/10. Rổ 30 mã theo kỳ tháng 8/2026, không phải rổ tại từng mốc cũ. Tải thêm cùng loại giá lịch sử không khôi phục được phiên bản dữ liệu thật sự có ở mỗi ngày quá khứ.")
 if not (RETRO_RUN / "manifest.json").exists():
     st.info("Lô hồi cứu dài hơn đang được tính; bảng kết quả sẽ xuất hiện sau khi hoàn tất và kiểm tra đủ đường dự báo.")
 else:
@@ -153,6 +180,7 @@ else:
         retro_panel = pd.read_csv(RETRO_RUN / "panel.csv")
         retro_outcomes = pd.read_csv(RETRO_RUN / "outcomes.csv")
         retro_exclusions = pd.read_csv(RETRO_RUN / "exclusions.csv")
+        st.markdown("**Toàn rổ 30 mã VN30 (không gồm DGW)**")
         a, b, c, d = st.columns(4)
         a.metric("Mốc lịch cố định", len(retro_manifest["anchors"]))
         b.metric("Cặp mã × mốc hợp lệ", retro_manifest["selected_pairs"])
@@ -164,7 +192,7 @@ else:
         st.dataframe(view.rename(columns={"seed":"Seed", "correct":"Đúng hướng", "samples":"Số mẫu", "win_rate":"Tỷ lệ đúng",
                                           "momentum_rate":"Đà giá 10 phiên", "always_up_rate":"Luôn đoán tăng",
                                           "mean_abs_return_error":"Sai số lợi suất TB"}), use_container_width=True, hide_index=True)
-        st.caption("Đà giá 10 phiên = đoán theo dấu lợi suất 10 phiên trước mốc. ‘Luôn đoán tăng’ phản ánh tỷ lệ phiên 10 thực tế tăng. Cả hai được tính trên chính các cặp mã–mốc hợp lệ như Kronos.")
+        st.caption("‘Luôn đoán tăng’ dự báo giá phiên 10 cao hơn giá tại mốc ở MỌI cặp mã–mốc; không liên quan đến 5 đường mẫu trên biểu đồ. ‘Đà giá 10 phiên’ dự báo hướng 10 phiên tới giống hướng 10 phiên vừa qua. Cả hai dùng cùng mẫu với Kronos.")
         mismatch_view = retro_panel.groupby(["seed", "calendar_mismatch"], as_index=False).agg(
             correct=("hit", "sum"), samples=("hit", "size"))
         mismatch_view["win_rate"] = (mismatch_view.correct / mismatch_view.samples).map(lambda value: f"{value:.1%}")
@@ -174,24 +202,28 @@ else:
                 "correct":"Đúng hướng", "samples":"Số mẫu", "win_rate":"Tỷ lệ đúng"}),
                 use_container_width=True, hide_index=True)
             st.caption("Nhóm lệch ngày chỉ là phân tích sau kết quả; không được dùng để chọn mẫu hoặc chọn seed cho tỷ lệ chính.")
-        selected_stock = retro_stock.loc[retro_stock.symbol.eq(symbol)].copy()
-        selected_stock["win_rate"] = selected_stock.win_rate.map(lambda value: f"{value:.1%}")
-        st.markdown(f"**Riêng {symbol}**")
-        st.dataframe(selected_stock.rename(columns={"symbol":"Mã", "seed":"Seed", "correct":"Đúng hướng", "samples":"Số mẫu", "win_rate":"Tỷ lệ đúng",
-                                                   "momentum_correct":"Đà giá đúng", "always_up_correct":"Luôn tăng đúng"}), use_container_width=True, hide_index=True)
-        st.markdown(f"**Từng lần dự báo của {symbol}**")
-        selected_trials = retro_panel.loc[retro_panel.symbol.eq(symbol),
-                                           ["cutoff", "seed", "forecast_return", "actual_return", "hit"]].copy()
-        selected_trials = selected_trials.merge(retro_outcomes.loc[retro_outcomes.symbol.eq(symbol),
-            ["cutoff", "forecast_date_10", "actual_date_10"]], on="cutoff", validate="many_to_one")
-        selected_trials["forecast_return"] = selected_trials.forecast_return.map(lambda value: f"{value:+.2%}")
-        selected_trials["actual_return"] = selected_trials.actual_return.map(lambda value: f"{value:+.2%}")
-        selected_trials["hit"] = selected_trials.hit.map({1: "Đúng", 0: "Sai"})
-        st.dataframe(selected_trials.rename(columns={"cutoff":"Ngày chốt", "seed":"Seed",
-                                                    "forecast_return":"Dự báo phiên 10", "actual_return":"Thực tế phiên 10",
-                                                    "forecast_date_10":"Ngày dự báo ước tính",
-                                                    "actual_date_10":"Ngày thực tế", "hit":"Hướng"}),
-                     use_container_width=True, hide_index=True)
+        st.caption("Bảng tổng hợp và đồ thị theo ngày bên dưới chỉ gồm 30 mã VN30 trong lô đã khóa; DGW được đánh giá riêng.")
+        if symbol in EXTRA_STOCKS:
+            if not (DGW_RUN / "manifest.json").exists():
+                st.info("DGW đang được tính hồi cứu riêng; dự báo theo mã vẫn dùng được.")
+            else:
+                dgw_manifest = json.loads((DGW_RUN / "manifest.json").read_text())
+                for name, expected_hash in dgw_manifest["file_sha256"].items():
+                    if sha256(DGW_RUN / f"{name}.csv") != expected_hash:
+                        raise ValueError(f"DGW {name}.csv không khớp bản kết quả đã khóa")
+                dgw_summary = pd.read_csv(DGW_RUN / "summary.csv")
+                dgw_panel = pd.read_csv(DGW_RUN / "panel.csv")
+                dgw_outcomes = pd.read_csv(DGW_RUN / "outcomes.csv")
+                st.caption(f"DGW ngoài VN30: {dgw_manifest['selected_windows']}/{len(dgw_manifest['anchors'])} mốc đủ dữ liệu; "
+                           f"{int(dgw_outcomes.calendar_mismatch.sum())} mốc lệch ngày ước tính. Dùng cùng seed và lịch như lô VN30.")
+                st.warning("Chỉ có 33 mốc DGW và giá lịch sử được truy hồi sau đó. Không chọn seed thắng nhất trên bảng này rồi xem đó là xác suất hay lợi thế giao dịch đã kiểm chứng.")
+                show_stock_replay(symbol, dgw_summary, dgw_panel, dgw_outcomes)
+                st.download_button("Tải kết quả DGW theo mốc và seed", (DGW_RUN / "panel.csv").read_bytes(),
+                                   file_name="kronos_DGW_retrospective_panel.csv", mime="text/csv")
+        else:
+            show_stock_replay(symbol, retro_stock.loc[retro_stock.symbol.eq(symbol)],
+                              retro_panel.loc[retro_panel.symbol.eq(symbol)],
+                              retro_outcomes.loc[retro_outcomes.symbol.eq(symbol)])
         timeline = retro_dates.pivot(index="cutoff", columns="seed", values="hit_rate")
         timeline.columns = [f"Seed {seed}" for seed in timeline.columns]
         timeline["Đà giá 10 phiên"] = retro_dates.loc[retro_dates.seed.eq(42)].set_index("cutoff")["momentum_rate"]
@@ -209,6 +241,8 @@ else:
 
 st.markdown("### Kiểm định tiến về sau")
 st.markdown("Lô mới khóa trước kết quả gồm **30 cổ phiếu × 3 seed cố định (42–44) × 10 phiên**. Dự báo, 90 nến đầu vào, cấu hình và dấu vân tay dữ liệu được lưu cùng thời điểm. Chỉ sau khi có đủ 10 phiên thực tế mới tính đúng hướng từng seed; không chọn lại seed theo lô đang kiểm tra.")
+if symbol in EXTRA_STOCKS:
+    st.caption("DGW chưa nằm trong lô niêm phong tiến về sau của 30 mã VN30 ngày 27/10/2026.")
 runs = sorted(LEDGER.glob("20*")) if LEDGER.exists() else []
 if not runs:
     st.info("Chưa có lô dự báo được niêm phong. Vì thế hiện chưa có win rate ngoài mẫu để công bố.")

@@ -2,7 +2,7 @@
 
 Ứng dụng Streamlit công khai: https://kronos-vn30-lab.streamlit.app/
 
-Chọn một trong 30 cổ phiếu VN30 và một ngày chốt. Ứng dụng đưa 90 nến OHLCV vào checkpoint `NeoQuasar/Kronos-small` để tạo 10 nến tiếp theo. Chạy từng seed độc lập (`sample_count=1`) để hiển thị 1, 3 hoặc 5 đường giá/khối lượng, bảng giá phiên 10 và CSV toàn bộ dự báo. Biểu đồ có thể phóng to, kéo ngang, tự chỉnh trục giá theo vùng xem và chuyển giữa đường giá/nến. Chế độ nến vẽ OHLC dự báo của một seed được chọn; các seed còn lại là đường nét đứt. Nến OHLC dự báo bất nhất được đánh dấu `!`, thân/bóng chỉ được bao trùm để hiển thị; CSV và tooltip giữ nguyên giá trị gốc.
+Chọn một trong 30 cổ phiếu VN30 hoặc **DGW (mã bổ sung ngoài rổ)** và một ngày chốt. Ứng dụng đưa 90 nến OHLCV vào checkpoint `NeoQuasar/Kronos-small` để tạo 10 nến tiếp theo. Chạy từng seed độc lập (`sample_count=1`) để hiển thị 1, 3 hoặc 5 đường giá/khối lượng, bảng giá phiên 10 và CSV toàn bộ dự báo. Biểu đồ có thể phóng to, kéo ngang, tự chỉnh trục giá theo vùng xem và chuyển giữa đường giá/nến. Chế độ nến vẽ OHLC dự báo của một seed được chọn; các seed còn lại là đường nét đứt. Nến OHLC dự báo bất nhất được đánh dấu `!`, thân/bóng chỉ được bao trùm để hiển thị; CSV và tooltip giữ nguyên giá trị gốc.
 
 ## Dữ liệu và khả năng tái lập
 
@@ -10,6 +10,7 @@ Chọn một trong 30 cổ phiếu VN30 và một ngày chốt. Ứng dụng đ�
 - Mã nguồn Kronos được ghim ở upstream commit `67b630e67f6a18c9e9be918d9b4337c960db1e9a`, model revision `901c26c1332695a2a8f243eb2f37243a37bea320`, tokenizer revision `0e0117387f39004a9016484a186a908917e22426`. Ứng dụng chạy CPU. Mỗi dự báo nạp mô hình một lần trong tiến trình riêng rồi lấy mẫu tuần tự với các seed cố định.
 - Trang đặt mặc định **T=0,6** để thử nghiệm; mặc định hàm `KronosPredictor.predict()` của upstream là **T=1,0**. **Top-p=0,9** là mặc định của upstream. `sample_count>1` trong upstream trả trung bình các mẫu, nên không thể dùng trực tiếp để lấy nhiều đường riêng.
 - Dữ liệu không có `amount`; Kronos ước lượng bằng `volume × mean(OHLC)`. Mọi nhãn ngày đích đều ước theo ngày làm việc biết trước tại ngày chốt. Khi đánh giá, bước thứ 10 được ghép với phiên giao dịch thực tế thứ 10, bất kể nhãn ngày ước tính.
+- DGW lấy trực tiếp từ cùng API biểu đồ Vietcap (VCI) cho toàn bộ chuỗi 03/08/2015–27/10/2026; tệp và metadata nằm trong `extra_stock_data/`, tách khỏi dữ liệu 30 mã. Sáu nến lịch sử có khối lượng 0 được giữ nguyên; cửa sổ 90 nến chứa chúng không đủ điều kiện chạy mô hình. Nguồn là bản chụp truy hồi, không phải phiên bản giá point-in-time.
 
 ## Chống nhìn trước và đánh giá tiến về sau
 
@@ -18,6 +19,10 @@ Chọn một trong 30 cổ phiếu VN30 và một ngày chốt. Ứng dụng đ�
 ## Giả lập hồi cứu để khám phá
 
 `retrospective.py` dùng chính checkpoint Kronos đã ghim để dự báo từng mã của rổ tháng 8/2026 tại các mốc cố định từ 01/07/2025 đến 27/10/2026, cách nhau 10 phiên. Ba seed 42–44, lookback 90 và horizon 10 được cố định trước; không chọn seed tốt nhất sau khi nhìn kết quả. Chỉ loại cửa sổ thiếu 90 nến đầu vào hoặc 10 phiên giá kết quả; mọi cửa sổ bị loại được lưu cùng lý do. Dự báo ghi ngày làm việc ước tính tại mốc chốt, nhưng chấm theo phiên giao dịch thực tế thứ 10; số cặp lệch nhãn ngày được công bố, không dùng để lọc mẫu. Dự báo được tính và ghi ra tệp trước khi mã ghép giá thực tế; bảng so sánh thêm quy tắc theo đà giá 10 phiên và luôn đoán tăng trên đúng cùng mẫu.
+
+“Luôn đoán tăng” dự báo `close(t+10) > close(t)` cho **mọi** cặp mã–mốc, độc lập với số đường Kronos đang vẽ. “Đà giá 10 phiên” lấy dấu của `close(t)/close(t-10)-1` làm hướng dự báo cho `close(t+10)/close(t)-1`. Hai quy tắc chỉ làm mốc so sánh, không phải tín hiệu giao dịch đã kiểm chứng.
+
+`extra_replay.py` tính DGW riêng trên cùng 33 mốc, ba seed và horizon. Tệp `extra_replay_runs/` có đầu vào, nến dự báo, giá thực tế, bảng từng mốc và mã băm. DGW không nhập vào mẫu 956 cặp VN30 hoặc lô niêm phong 30 mã. Vì chỉ có 33 mốc DGW, không được chọn seed đúng nhiều nhất sau khi xem kết quả rồi gọi đó là lợi thế hay xác suất đã hiệu chỉnh.
 
 Bộ CSV có nến từ 2018, nhưng không dùng giai đoạn 2018–06/2025 để chấm Kronos: các nến đó có thể đã nằm trong tập huấn luyện. Tệp trọng số checkpoint được [công bố 30/06/2025](https://huggingface.co/NeoQuasar/Kronos-small/commit/ac5c409a313c4eadd1ca78201322f5cadb9c34ab); việc bắt đầu từ 01/07/2025 chỉ loại được nguy cơ mô hình đã học chính các phiên sau ngày phát hành, không sửa được dữ liệu giá truy hồi hay thiên lệch chọn mã.
 
