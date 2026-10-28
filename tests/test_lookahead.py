@@ -1,6 +1,7 @@
 """Regression checks for the inference boundary and sealed forward ledger."""
 
 import json
+import hashlib
 import sys
 import tempfile
 import unittest
@@ -15,6 +16,7 @@ APP = Path(__file__).resolve().parents[1] / "research" / "kronos_single_stock_we
 sys.path.insert(0, str(APP))
 import core  # noqa: E402
 import forward  # noqa: E402
+import retrospective  # noqa: E402
 
 
 class LeakageBoundaryTest(unittest.TestCase):
@@ -59,6 +61,33 @@ class LeakageBoundaryTest(unittest.TestCase):
                 handle.write(b"\n")
             with self.assertRaisesRegex(ValueError, "checksum mismatch"):
                 forward.evaluate(copy)
+
+    def test_retrospective_recomputes_from_saved_paths_and_outcomes(self):
+        run = retrospective.RUN
+        manifest = json.loads((run / "manifest.json").read_text())
+        self.assertEqual(manifest["kind"], "exploratory_retrospective_not_point_in_time")
+        for name, expected in manifest["file_sha256"].items():
+            self.assertEqual(hashlib.sha256((run / f"{name}.csv").read_bytes()).hexdigest(), expected)
+        inputs = pd.read_csv(run / "inputs.csv")
+        forecasts = pd.read_csv(run / "forecasts.csv")
+        outcomes = pd.read_csv(run / "outcomes.csv")
+        summary = pd.read_csv(run / "summary.csv").set_index("seed")
+        self.assertTrue((inputs.date <= inputs.cutoff).all())
+        self.assertTrue((forecasts.cutoff >= "2025-07-01").all())
+        self.assertEqual(len(outcomes), manifest["selected_pairs"])
+        self.assertGreater(int(outcomes.calendar_mismatch.sum()), 0)
+        self.assertEqual(len(outcomes) + manifest["excluded_pairs"],
+                         len(manifest["anchors"]) * len(core.current_members()))
+        self.assertFalse(pd.read_csv(run / "exclusions.csv").reason.eq("forecast_calendar_mismatch").any())
+        terminal = forecasts.sort_values("date").groupby(["symbol", "cutoff", "seed"]).tail(1)
+        joined = terminal.merge(outcomes[["symbol", "cutoff", "last_close", "actual_return"]],
+                                on=["symbol", "cutoff"], validate="many_to_one")
+        joined["hit"] = (np.sign(joined.close / joined.last_close - 1)
+                         == np.sign(joined.actual_return)).astype(int)
+        counts = joined.groupby("seed").hit.agg(["sum", "size"])
+        for seed in manifest["seeds"]:
+            self.assertEqual(int(counts.loc[seed, "sum"]), int(summary.loc[seed, "correct"]))
+            self.assertEqual(int(counts.loc[seed, "size"]), int(summary.loc[seed, "samples"]))
 
 
 if __name__ == "__main__":

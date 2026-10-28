@@ -20,7 +20,8 @@ import core as core_module
 importlib.reload(core_module)
 from chart import chart_html
 from core import HORIZON, LOOKBACK, MODEL_REVISION, T, TOP_P, current_members, eligible_cutoffs, load_stock, prepare, realized_path
-from forward import LEDGER, evaluate
+from forward import LEDGER, evaluate, sha256
+from retrospective import RUN as RETRO_RUN
 
 
 st.set_page_config(page_title="Kronos Lab · VN30", page_icon="📈", layout="wide")
@@ -120,7 +121,7 @@ else:
         c.metric("Khoảng các mẫu phiên 10", f"{low_close:,.2f}–{high_close:,.2f}")
         d.metric("Đóng cửa thực tế phiên 10" if realized is not None else "Thực tế phiên 10", f"{realized:,.2f}" if realized is not None else "Chưa có")
         st.caption("Các đường là mẫu từ cùng một checkpoint; khoảng thấp–cao không phải khoảng tin cậy hay xác suất đã hiệu chỉnh.")
-        components.html(chart_html(prepared.history, forecasts, actual), height=635, scrolling=False)
+        components.html(chart_html(prepared.history, forecasts, actual), height=710, scrolling=False)
         st.info("Ngày trên đường dự báo chỉ là ngày làm việc ước tính tại ngày chốt. Khi so sánh, phiên dự báo thứ 10 được ghép với phiên giao dịch thực tế thứ 10; ngày nghỉ có thể khiến hai nhãn ngày khác nhau.")
         if len(actual) not in (0, HORIZON):
             st.info(f"Đã có giá thực tế cho {len(actual)}/{HORIZON} phiên sau ngày chốt.")
@@ -134,8 +135,79 @@ else:
     except Exception as exc:
         st.error(f"Không hiển thị được dự báo: {exc}")
 
+st.markdown("### Giả lập hồi cứu trên giá lịch sử")
+st.caption("Cố định lịch từ 01/07/2025 đến 27/10/2026, dự báo 10 phiên sau mỗi 10 phiên, ba seed 42–44. Không chọn seed thắng từ kết quả. Chỉ loại cửa sổ thiếu 90 nến đầu vào hoặc 10 phiên kết quả. Chấm theo thứ tự phiên; ngày dự báo có thể lệch lịch giao dịch quanh ngày nghỉ.")
+st.warning("Đây là **hồi cứu thăm dò**, không phải win rate ngoài mẫu chống leakage hoàn toàn: giá VCI/Vnstock đã điều chỉnh được truy hồi vào 26/10/2026, và 30 mã là thành viên rổ tháng 8/2026, không phải rổ tại từng mốc cũ. Tải thêm cùng loại giá lịch sử không khôi phục được phiên bản dữ liệu thật sự có ở mỗi ngày quá khứ.")
+if not (RETRO_RUN / "manifest.json").exists():
+    st.info("Lô hồi cứu dài hơn đang được tính; bảng kết quả sẽ xuất hiện sau khi hoàn tất và kiểm tra đủ đường dự báo.")
+else:
+    try:
+        import json
+        retro_manifest = json.loads((RETRO_RUN / "manifest.json").read_text())
+        for name, expected_hash in retro_manifest["file_sha256"].items():
+            if sha256(RETRO_RUN / f"{name}.csv") != expected_hash:
+                raise ValueError(f"Tệp {name}.csv không khớp bản kết quả đã khóa")
+        retro_summary = pd.read_csv(RETRO_RUN / "summary.csv")
+        retro_stock = pd.read_csv(RETRO_RUN / "per_stock.csv")
+        retro_dates = pd.read_csv(RETRO_RUN / "per_date.csv")
+        retro_panel = pd.read_csv(RETRO_RUN / "panel.csv")
+        retro_outcomes = pd.read_csv(RETRO_RUN / "outcomes.csv")
+        retro_exclusions = pd.read_csv(RETRO_RUN / "exclusions.csv")
+        a, b, c, d = st.columns(4)
+        a.metric("Mốc lịch cố định", len(retro_manifest["anchors"]))
+        b.metric("Cặp mã × mốc hợp lệ", retro_manifest["selected_pairs"])
+        c.metric("Cặp bị loại và ghi lý do", retro_manifest["excluded_pairs"])
+        d.metric("Cặp lệch ngày ước tính", int(retro_outcomes.calendar_mismatch.sum()))
+        view = retro_summary[["seed", "correct", "samples", "win_rate", "momentum_rate", "always_up_rate", "mean_abs_return_error"]].copy()
+        for field in ("win_rate", "momentum_rate", "always_up_rate", "mean_abs_return_error"):
+            view[field] = view[field].map(lambda value: f"{value:.1%}")
+        st.dataframe(view.rename(columns={"seed":"Seed", "correct":"Đúng hướng", "samples":"Số mẫu", "win_rate":"Tỷ lệ đúng",
+                                          "momentum_rate":"Đà giá 10 phiên", "always_up_rate":"Luôn đoán tăng",
+                                          "mean_abs_return_error":"Sai số lợi suất TB"}), use_container_width=True, hide_index=True)
+        st.caption("Đà giá 10 phiên = đoán theo dấu lợi suất 10 phiên trước mốc. ‘Luôn đoán tăng’ phản ánh tỷ lệ phiên 10 thực tế tăng. Cả hai được tính trên chính các cặp mã–mốc hợp lệ như Kronos.")
+        mismatch_view = retro_panel.groupby(["seed", "calendar_mismatch"], as_index=False).agg(
+            correct=("hit", "sum"), samples=("hit", "size"))
+        mismatch_view["win_rate"] = (mismatch_view.correct / mismatch_view.samples).map(lambda value: f"{value:.1%}")
+        mismatch_view["calendar_mismatch"] = mismatch_view.calendar_mismatch.map({0: "Trùng ngày", 1: "Lệch ngày"})
+        with st.expander("Kiểm tra độ nhạy với ngày nghỉ"):
+            st.dataframe(mismatch_view.rename(columns={"seed":"Seed", "calendar_mismatch":"Nhãn ngày",
+                "correct":"Đúng hướng", "samples":"Số mẫu", "win_rate":"Tỷ lệ đúng"}),
+                use_container_width=True, hide_index=True)
+            st.caption("Nhóm lệch ngày chỉ là phân tích sau kết quả; không được dùng để chọn mẫu hoặc chọn seed cho tỷ lệ chính.")
+        selected_stock = retro_stock.loc[retro_stock.symbol.eq(symbol)].copy()
+        selected_stock["win_rate"] = selected_stock.win_rate.map(lambda value: f"{value:.1%}")
+        st.markdown(f"**Riêng {symbol}**")
+        st.dataframe(selected_stock.rename(columns={"symbol":"Mã", "seed":"Seed", "correct":"Đúng hướng", "samples":"Số mẫu", "win_rate":"Tỷ lệ đúng",
+                                                   "momentum_correct":"Đà giá đúng", "always_up_correct":"Luôn tăng đúng"}), use_container_width=True, hide_index=True)
+        st.markdown(f"**Từng lần dự báo của {symbol}**")
+        selected_trials = retro_panel.loc[retro_panel.symbol.eq(symbol),
+                                           ["cutoff", "seed", "forecast_return", "actual_return", "hit"]].copy()
+        selected_trials = selected_trials.merge(retro_outcomes.loc[retro_outcomes.symbol.eq(symbol),
+            ["cutoff", "forecast_date_10", "actual_date_10"]], on="cutoff", validate="many_to_one")
+        selected_trials["forecast_return"] = selected_trials.forecast_return.map(lambda value: f"{value:+.2%}")
+        selected_trials["actual_return"] = selected_trials.actual_return.map(lambda value: f"{value:+.2%}")
+        selected_trials["hit"] = selected_trials.hit.map({1: "Đúng", 0: "Sai"})
+        st.dataframe(selected_trials.rename(columns={"cutoff":"Ngày chốt", "seed":"Seed",
+                                                    "forecast_return":"Dự báo phiên 10", "actual_return":"Thực tế phiên 10",
+                                                    "forecast_date_10":"Ngày dự báo ước tính",
+                                                    "actual_date_10":"Ngày thực tế", "hit":"Hướng"}),
+                     use_container_width=True, hide_index=True)
+        timeline = retro_dates.pivot(index="cutoff", columns="seed", values="hit_rate")
+        timeline.columns = [f"Seed {seed}" for seed in timeline.columns]
+        timeline["Đà giá 10 phiên"] = retro_dates.loc[retro_dates.seed.eq(42)].set_index("cutoff")["momentum_rate"]
+        timeline["Luôn đoán tăng"] = retro_dates.loc[retro_dates.seed.eq(42)].set_index("cutoff")["always_up_rate"]
+        st.line_chart(timeline, height=260)
+        st.caption("Mỗi điểm là tỷ lệ đúng trên các mã đủ dữ liệu tại một mốc; các mã cùng ngày có tương quan nên tổng số cặp không tương đương số quan sát độc lập.")
+        st.caption("Lý do loại cửa sổ: " + ", ".join(f"{reason}: {count}"
+                   for reason, count in retro_exclusions.reason.value_counts().items()))
+        st.download_button("Tải kết quả từng mã × mốc × seed", (RETRO_RUN / "panel.csv").read_bytes(),
+                           file_name="kronos_retrospective_panel.csv", mime="text/csv")
+        st.download_button("Tải danh sách mốc bị loại", (RETRO_RUN / "exclusions.csv").read_bytes(),
+                           file_name="kronos_retrospective_exclusions.csv", mime="text/csv")
+    except Exception as exc:
+        st.error(f"Không đọc được lô hồi cứu: {exc}")
+
 st.markdown("### Kiểm định tiến về sau")
-st.warning("Bảng win rate hồi cứu trước đây đã được gỡ khỏi giao diện: giá lịch sử điều chỉnh được truy hồi vào 26/10/2026, nên không thể xác nhận từng nến đúng phiên bản có sẵn tại ngày chốt. Chọn seed từ 6 cửa sổ rồi kiểm tra 4 cửa sổ cũng quá dễ overfit.")
 st.markdown("Lô mới khóa trước kết quả gồm **30 cổ phiếu × 3 seed cố định (42–44) × 10 phiên**. Dự báo, 90 nến đầu vào, cấu hình và dấu vân tay dữ liệu được lưu cùng thời điểm. Chỉ sau khi có đủ 10 phiên thực tế mới tính đúng hướng từng seed; không chọn lại seed theo lô đang kiểm tra.")
 runs = sorted(LEDGER.glob("20*")) if LEDGER.exists() else []
 if not runs:

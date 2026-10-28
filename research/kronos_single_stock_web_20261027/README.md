@@ -2,7 +2,7 @@
 
 Ứng dụng Streamlit công khai: https://kronos-vn30-lab.streamlit.app/
 
-Chọn một trong 30 cổ phiếu VN30 và một ngày chốt. Ứng dụng đưa 90 nến OHLCV vào checkpoint `NeoQuasar/Kronos-small` để tạo 10 nến tiếp theo. Chạy từng seed độc lập (`sample_count=1`) để hiển thị 1, 3 hoặc 5 đường giá/khối lượng, bảng giá phiên 10 và CSV toàn bộ dự báo. Biểu đồ có thể phóng to, kéo ngang, tự chỉnh trục giá theo vùng xem và chuyển giữa đường giá/nến.
+Chọn một trong 30 cổ phiếu VN30 và một ngày chốt. Ứng dụng đưa 90 nến OHLCV vào checkpoint `NeoQuasar/Kronos-small` để tạo 10 nến tiếp theo. Chạy từng seed độc lập (`sample_count=1`) để hiển thị 1, 3 hoặc 5 đường giá/khối lượng, bảng giá phiên 10 và CSV toàn bộ dự báo. Biểu đồ có thể phóng to, kéo ngang, tự chỉnh trục giá theo vùng xem và chuyển giữa đường giá/nến. Chế độ nến vẽ OHLC dự báo của một seed được chọn; các seed còn lại là đường nét đứt. Nến OHLC dự báo bất nhất được đánh dấu `!`, thân/bóng chỉ được bao trùm để hiển thị; CSV và tooltip giữ nguyên giá trị gốc.
 
 ## Dữ liệu và khả năng tái lập
 
@@ -13,7 +13,15 @@ Chọn một trong 30 cổ phiếu VN30 và một ngày chốt. Ứng dụng đ�
 
 ## Chống nhìn trước và đánh giá tiến về sau
 
-Đầu vào mô hình chỉ gồm 90 nến đến ngày chốt; nhãn giá thực tế được đọc bằng hàm riêng sau khi dự báo. Tiến trình chạy mô hình không gọi hàm đọc nhãn. Lịch phiên thực tế sau ngày chốt không được đưa vào mô hình. Bảng win rate hồi cứu cũ đã được gỡ khỏi giao diện: dữ liệu giá từ 2018 được truy hồi năm 2026 dưới dạng điều chỉnh, nên không có bằng chứng phiên bản giá có sẵn tại từng mốc. Danh sách 30 thành viên hiện tại cũng không thể dùng như rổ lịch sử.
+Đầu vào mô hình chỉ gồm 90 nến đến ngày chốt; nhãn giá thực tế được đọc bằng hàm riêng sau khi dự báo. Tiến trình chạy mô hình không gọi hàm đọc nhãn. Lịch phiên thực tế sau ngày chốt không được đưa vào mô hình. Bảng nhỏ 10 mốc/4 mốc kiểm tra trước đây đã được thay bằng lô hồi cứu dài hơn, gắn nhãn thăm dò: dữ liệu giá từ 2018 được truy hồi năm 2026 dưới dạng điều chỉnh, nên không có bằng chứng phiên bản giá có sẵn tại từng mốc. Danh sách 30 thành viên hiện tại cũng không thể dùng như rổ lịch sử.
+
+## Giả lập hồi cứu để khám phá
+
+`retrospective.py` dùng chính checkpoint Kronos đã ghim để dự báo từng mã của rổ tháng 8/2026 tại các mốc cố định từ 01/07/2025 đến 27/10/2026, cách nhau 10 phiên. Ba seed 42–44, lookback 90 và horizon 10 được cố định trước; không chọn seed tốt nhất sau khi nhìn kết quả. Chỉ loại cửa sổ thiếu 90 nến đầu vào hoặc 10 phiên giá kết quả; mọi cửa sổ bị loại được lưu cùng lý do. Dự báo ghi ngày làm việc ước tính tại mốc chốt, nhưng chấm theo phiên giao dịch thực tế thứ 10; số cặp lệch nhãn ngày được công bố, không dùng để lọc mẫu. Dự báo được tính và ghi ra tệp trước khi mã ghép giá thực tế; bảng so sánh thêm quy tắc theo đà giá 10 phiên và luôn đoán tăng trên đúng cùng mẫu.
+
+Bộ CSV có nến từ 2018, nhưng không dùng giai đoạn 2018–06/2025 để chấm Kronos: các nến đó có thể đã nằm trong tập huấn luyện. Tệp trọng số checkpoint được [công bố 30/06/2025](https://huggingface.co/NeoQuasar/Kronos-small/commit/ac5c409a313c4eadd1ca78201322f5cadb9c34ab); việc bắt đầu từ 01/07/2025 chỉ loại được nguy cơ mô hình đã học chính các phiên sau ngày phát hành, không sửa được dữ liệu giá truy hồi hay thiên lệch chọn mã.
+
+Đây là **giả lập trên giá lịch sử truy hồi**, không phải kiểm định point-in-time: giá VCI/Vnstock đã điều chỉnh được lấy vào 26/10/2026, và danh sách 30 mã cố định theo rổ tháng 8/2026. Tải lại cùng loại giá lịch sử từ Vnstock hoặc FiinX không tự tạo phiên bản giá từng ngày chốt; cần dữ liệu as-of hoặc giá thô cùng lịch corporate action đáng tin cậy để xử lý nguồn nhìn trước đó. Nhiều mã trong cùng một mốc cùng chịu thị trường nên tổng số cặp mã–mốc không phải số quan sát độc lập.
 
 Lệnh `python3 research/kronos_single_stock_web_20261027/forward.py freeze` niêm phong một lô gồm 30 mã × 3 seed cố định × 10 phiên sau khi đủ giá phiên hôm nay. Lô chứa nến đầu vào, đường dự báo, thời điểm lưu, mã băm SHA-256, mã băm nguồn chạy, phiên bản model/tokenizer và môi trường tính. Lệnh từ chối ghi đè hoặc chạy trên dữ liệu cũ. Lô cần được commit/push công khai trước phiên tiếp theo để có dấu thời gian kiểm chứng độc lập. `forward.py evaluate` chỉ chấm mã đã đủ 10 phiên thực tế; trên giao diện, win rate toàn rổ chỉ hiển thị khi đủ cả 30 mã. Nếu lịch giao dịch thực tế lệch lịch ngày làm việc mà Kronos đã nhận, hoặc giá ngày chốt bị điều chỉnh lại, lô bị chặn chấm và cần xử lý công khai trước. Không chọn lại seed/T/top-p sau khi xem kết quả. Những lần bấm dự báo tùy ý trên giao diện không được tính vào win rate này.
 

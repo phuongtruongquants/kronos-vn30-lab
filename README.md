@@ -2,7 +2,7 @@
 
 Interactive one-stock-at-a-time Kronos-small forecasts for the 30 VN30 constituents in the research snapshot. Historical OHLCV data and verified updates through **2026-10-27** are bundled for reproducibility. Prices are adjusted and shown in thousands of VND. This is a model demo, not a trading recommendation.
 
-The app displays 1, 3, or 5 independently sampled paths (one fixed seed per path), a price and volume chart with zoom and pan, and a descriptive seed audit. The audit uses a fixed non-overlapping 2026 schedule: 10 windows with 10-session horizon, six for calibration and four later windows for a small holdout. It avoids future bars in prediction inputs but cannot establish full out-of-sample status because the checkpoint training cutoff and historical data vintages are not verified.
+The app displays 1, 3, or 5 independently sampled paths (one fixed seed per path), an interactive price and volume chart with predicted OHLC candles, and two separate evaluations. The exploratory retrospective replays fixed 10-session forecasts from July 2025 on the 30-stock snapshot and compares them with later prices and simple baselines. It does not establish point-in-time out-of-sample performance: historical price vintages and historical index membership are unavailable. The forward ledger seals forecasts before their results exist and will only report a win rate after all 10 future sessions are observed.
 
 Entrypoint: `research/kronos_single_stock_web_20261027/app.py`
 
