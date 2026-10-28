@@ -24,7 +24,7 @@ MODEL_REVISION = "901c26c1332695a2a8f243eb2f37243a37bea320"
 TOKENIZER_REVISION = "0e0117387f39004a9016484a186a908917e22426"
 LOOKBACK = 90
 HORIZON = 10
-T = 0.6
+T = 1.0
 TOP_P = 0.9
 SAMPLE_COUNT = 1
 
@@ -74,7 +74,12 @@ def load_stock(symbol: str, *, allow_historical_member: bool = False) -> tuple[p
         raise ValueError(f"Chưa có tệp giá cho mã {symbol}")
     frame = pd.read_csv(path)
     latest_update = None
-    for date, csv, manifest in ([] if symbol in EXTRA_STOCKS else updates()):
+    for date, csv, manifest in updates():
+        if symbol not in manifest["symbols"]:
+            if symbol in EXTRA_STOCKS:
+                # DGW was added after the 26/27 Oct VN30-only overlays.
+                continue
+            raise ValueError(f"Thiếu mã {symbol} trong manifest ngày {date}")
         update = pd.read_csv(csv)
         update = update.loc[update["symbol"].eq(symbol)].drop(columns="symbol")
         if len(update) != 1:
@@ -85,6 +90,10 @@ def load_stock(symbol: str, *, allow_historical_member: bool = False) -> tuple[p
     required = {"time", "open", "high", "low", "close", "volume"}
     if not required.issubset(frame):
         raise ValueError(f"Thiếu cột dữ liệu: {required - set(frame)}")
+    if symbol in EXTRA_STOCKS and frame["volume"].notna().all() and frame["volume"].mod(1).eq(0).all():
+        # Preserve the original DGW integer-volume snapshot when a daily
+        # overlay is parsed as float; paired historical CSVs must stay exact.
+        frame["volume"] = frame["volume"].astype("int64")
     frame["time"] = pd.to_datetime(frame["time"])
     frame["date"] = frame["time"].dt.strftime("%Y-%m-%d")
     frame = frame.sort_values("time").drop_duplicates("date", keep=False).set_index("date", drop=False)

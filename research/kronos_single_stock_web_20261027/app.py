@@ -20,9 +20,12 @@ import core as core_module
 importlib.reload(core_module)
 from chart import chart_html
 from core import EXTRA_STOCKS, HORIZON, LOOKBACK, MODEL_REVISION, T, TOP_P, current_members, eligible_cutoffs, load_stock, prepare, realized_path
-from extra_replay import RUN as DGW_RUN
+from extra_replay import RUN as DGW_BASELINE_RUN
 from forward import LEDGER, evaluate, sha256
-from retrospective import RUN as RETRO_RUN
+from retrospective import RUN as RETRO_BASELINE_RUN
+
+RETRO_RUN = RETRO_BASELINE_RUN.with_name(RETRO_BASELINE_RUN.name + "_T1")
+DGW_RUN = DGW_BASELINE_RUN.with_name(DGW_BASELINE_RUN.name + "_T1")
 
 
 st.set_page_config(page_title="Kronos Lab · VN30", page_icon="📈", layout="wide")
@@ -66,6 +69,16 @@ def show_stock_replay(symbol: str, stock_summary: pd.DataFrame,
     st.dataframe(summary.rename(columns={"seed": "Seed", "correct": "Đúng hướng",
                                          "samples": "Số mẫu", "win_rate": "Tỷ lệ đúng"}),
                  use_container_width=True, hide_index=True)
+    vote = stock_panel.assign(mau_tang=stock_panel.forecast_return.gt(0)).groupby(
+        "cutoff", as_index=False).agg(so_duong_tang=("mau_tang", "sum"),
+                                      thuc_te_tang=("actual_return", lambda values: int(values.iloc[0] > 0)))
+    vote = vote.groupby("so_duong_tang", as_index=False).agg(
+        so_moc=("thuc_te_tang", "size"), so_lan_tang=("thuc_te_tang", "sum"))
+    vote["ty_le_tang"] = (vote.so_lan_tang / vote.so_moc).map(lambda value: f"{value:.1%}")
+    st.caption(f"{symbol}: tần suất tăng thực tế theo số đường mẫu tăng ở T=1,0; mỗi ô chỉ có vài mốc, chưa phải xác suất đã hiệu chỉnh.")
+    st.dataframe(vote.rename(columns={"so_duong_tang": "Đường tăng / 3", "so_moc": "Số mốc",
+                                     "so_lan_tang": "Thực tế tăng", "ty_le_tang": "Tỷ lệ tăng thực tế"}),
+                 use_container_width=True, hide_index=True)
     st.markdown(f"**Từng lần dự báo của {symbol}**")
     trials = stock_panel[["cutoff", "seed", "forecast_return", "actual_return", "hit"]].copy()
     trials = trials.merge(stock_outcomes[["cutoff", "forecast_date_10", "actual_date_10"]],
@@ -102,7 +115,7 @@ with st.sidebar:
         temperature = float(st.slider("Temperature (T)", min_value=.2, max_value=1.5, value=float(T), step=.1))
         top_p = float(st.slider("Top-p", min_value=.5, max_value=1.0, value=float(TOP_P), step=.05))
         st.caption("Mỗi seed được chạy riêng với sample_count=1. `sample_count>1` trong Kronos sẽ lấy trung bình, không trả từng đường.")
-        st.caption("T=0,6 là cấu hình demo; mặc định `predict()` của Kronos là T=1,0. Top-p=0,9 là mặc định của `predict()`.")
+        st.caption("Mặc định T=1,0 và top-p=0,9 như `predict()` của Kronos. Có thể đổi T để khám phá; các bảng hồi cứu đã khóa bên dưới chỉ so sánh T=0,6 và T=1,0.")
     run = st.button("Chạy dự báo Kronos", type="primary", use_container_width=True)
     source = ("Vietcap (VCI) trực tiếp" if symbol in EXTRA_STOCKS else
               "Vietcap (VCI)" if metadata.get("latest_source") else "Vietcap (VCI) qua Vnstock")
@@ -142,12 +155,14 @@ else:
         realized = float(actual["close"].iloc[-1]) if len(actual) == HORIZON else None
         st.markdown("### Nhiều đường cho một mã")
         a, b = st.columns(2)
-        c, d = st.columns(2)
+        c, d, e = st.columns(3)
         a.metric("Giá chốt đầu vào", f"{last_close:,.2f}")
         b.metric("Trung vị giá phiên 10", f"{median_close:,.2f}")
         c.metric("Khoảng các mẫu phiên 10", f"{low_close:,.2f}–{high_close:,.2f}")
         d.metric("Đóng cửa thực tế phiên 10" if realized is not None else "Thực tế phiên 10", f"{realized:,.2f}" if realized is not None else "Chưa có")
-        st.caption("Các đường là mẫu từ cùng một checkpoint; khoảng thấp–cao không phải khoảng tin cậy hay xác suất đã hiệu chỉnh.")
+        up_paths = int(terminal["close"].gt(last_close).sum())
+        e.metric("Đường mẫu dự báo tăng", f"{up_paths}/{len(terminal)}")
+        st.caption("Số đường dự báo tăng là tần suất lấy mẫu theo các seed đang chọn, không phải xác suất tăng đã hiệu chỉnh. Khoảng thấp–cao cũng không phải khoảng tin cậy.")
         components.html(chart_html(prepared.history, forecasts, actual), height=710, scrolling=False)
         st.info("Ngày trên đường dự báo chỉ là ngày làm việc ước tính tại ngày chốt. Khi so sánh, phiên dự báo thứ 10 được ghép với phiên giao dịch thực tế thứ 10; ngày nghỉ có thể khiến hai nhãn ngày khác nhau.")
         if len(actual) not in (0, HORIZON):
@@ -164,7 +179,7 @@ else:
 
 st.markdown("### Giả lập hồi cứu trên giá lịch sử")
 st.caption("Cố định lịch từ 01/07/2025 đến 27/10/2026, dự báo 10 phiên sau mỗi 10 phiên, ba seed 42–44. Không chọn seed thắng từ kết quả. Chỉ loại cửa sổ thiếu 90 nến đầu vào, có nến đầu vào không hợp lệ hoặc thiếu 10 phiên kết quả. Chấm theo thứ tự phiên; ngày dự báo có thể lệch lịch giao dịch quanh ngày nghỉ.")
-st.warning("Đây là **hồi cứu thăm dò**, không phải win rate ngoài mẫu chống leakage hoàn toàn: giá VCI/Vnstock của 30 mã được truy hồi 26/10/2026 và bổ sung 27/10; DGW được lấy 28/10. Rổ 30 mã theo kỳ tháng 8/2026, không phải rổ tại từng mốc cũ. Tải thêm cùng loại giá lịch sử không khôi phục được phiên bản dữ liệu thật sự có ở mỗi ngày quá khứ.")
+st.warning("Đây là **hồi cứu thăm dò**, không phải win rate ngoài mẫu chống leakage hoàn toàn: giá VCI/Vnstock lịch sử được truy hồi sau các mốc, và rổ 30 mã theo kỳ tháng 8/2026. Dữ liệu mới nhất 28/10/2026 của cả 30 mã và DGW là lớp bổ sung riêng; các mốc hồi cứu vẫn kết thúc 27/10. T=1 được chọn sau khi đã xem kết quả T=0,6, nên so sánh này cũng là bước điều chỉnh mô hình, chưa chứng minh lợi thế giao dịch.")
 if not (RETRO_RUN / "manifest.json").exists():
     st.info("Lô hồi cứu dài hơn đang được tính; bảng kết quả sẽ xuất hiện sau khi hoàn tất và kiểm tra đủ đường dự báo.")
 else:
@@ -180,7 +195,15 @@ else:
         retro_panel = pd.read_csv(RETRO_RUN / "panel.csv")
         retro_outcomes = pd.read_csv(RETRO_RUN / "outcomes.csv")
         retro_exclusions = pd.read_csv(RETRO_RUN / "exclusions.csv")
-        st.markdown("**Toàn rổ 30 mã VN30 (không gồm DGW)**")
+        baseline_manifest = json.loads((RETRO_BASELINE_RUN / "manifest.json").read_text())
+        for name, expected_hash in baseline_manifest["file_sha256"].items():
+            if sha256(RETRO_BASELINE_RUN / f"{name}.csv") != expected_hash:
+                raise ValueError(f"T=0,6: tệp {name}.csv không khớp bản đã khóa")
+        if any(retro_manifest["file_sha256"][name] != baseline_manifest["file_sha256"][name]
+               for name in ("plan", "exclusions", "inputs", "outcomes")):
+            raise ValueError("Hai cấu hình T không dùng cùng đầu vào và kết quả thực tế")
+        baseline_summary = pd.read_csv(RETRO_BASELINE_RUN / "summary.csv")
+        st.markdown("**Toàn rổ 30 mã VN30 (không gồm DGW) · T=1,0**")
         a, b, c, d = st.columns(4)
         a.metric("Mốc lịch cố định", len(retro_manifest["anchors"]))
         b.metric("Cặp mã × mốc hợp lệ", retro_manifest["selected_pairs"])
@@ -192,6 +215,33 @@ else:
         st.dataframe(view.rename(columns={"seed":"Seed", "correct":"Đúng hướng", "samples":"Số mẫu", "win_rate":"Tỷ lệ đúng",
                                           "momentum_rate":"Đà giá 10 phiên", "always_up_rate":"Luôn đoán tăng",
                                           "mean_abs_return_error":"Sai số lợi suất TB"}), use_container_width=True, hide_index=True)
+        paired = retro_summary[["seed", "correct", "samples", "win_rate"]].merge(
+            baseline_summary[["seed", "correct", "samples", "win_rate"]],
+            on=["seed", "samples"], suffixes=("_T1", "_T06"), validate="one_to_one")
+        paired["delta_pp"] = (paired.win_rate_T1 - paired.win_rate_T06) * 100
+        paired_view = paired[["seed", "samples", "correct_T06", "correct_T1", "delta_pp"]].copy()
+        paired_view["delta_pp"] = paired_view.delta_pp.map(lambda value: f"{value:+.1f} điểm %")
+        st.markdown("**So sánh T=0,6 và T=1,0 trên đúng cùng cặp mã–mốc**")
+        st.dataframe(paired_view.rename(columns={"seed": "Seed", "samples": "Số cặp", "correct_T06": "T=0,6 đúng", "correct_T1": "T=1,0 đúng", "delta_pp": "Chênh tỷ lệ đúng"}), use_container_width=True, hide_index=True)
+        baseline_panel = pd.read_csv(RETRO_BASELINE_RUN / "panel.csv")
+        def majority_score(panel: pd.DataFrame) -> tuple[int, int]:
+            grouped = panel.assign(mau_tang=panel.forecast_return.gt(0)).groupby(
+                ["symbol", "cutoff"], as_index=False).agg(
+                    so_duong_tang=("mau_tang", "sum"), thuc_te_tang=("actual_return", lambda values: int(values.iloc[0] > 0)))
+            return int((grouped.so_duong_tang.ge(2) == grouped.thuc_te_tang).sum()), len(grouped)
+        majority_old, majority_n = majority_score(baseline_panel)
+        majority_new, _ = majority_score(retro_panel)
+        st.caption(f"Bỏ phiếu đa số 3 seed trên {majority_n} cặp: T=0,6 đúng {majority_old}/{majority_n} ({majority_old/majority_n:.1%}); T=1,0 đúng {majority_new}/{majority_n} ({majority_new/majority_n:.1%}). Đây cũng là hồi cứu thăm dò.")
+        votes = retro_panel.assign(mau_tang=retro_panel.forecast_return.gt(0)).groupby(
+            ["symbol", "cutoff"], as_index=False).agg(so_duong_tang=("mau_tang", "sum"),
+                                                      thuc_te_tang=("actual_return", lambda values: int(values.iloc[0] > 0)))
+        vote_summary = votes.groupby("so_duong_tang", as_index=False).agg(
+            so_cap=("thuc_te_tang", "size"), so_lan_tang=("thuc_te_tang", "sum"))
+        vote_summary["ty_le_tang_thuc_te"] = vote_summary.so_lan_tang / vote_summary.so_cap
+        vote_summary["ty_le_tang_thuc_te"] = vote_summary.ty_le_tang_thuc_te.map(lambda value: f"{value:.1%}")
+        st.markdown("**Tần suất tăng thực tế theo số đường mẫu tăng (3 seed, T=1,0)**")
+        st.dataframe(vote_summary.rename(columns={"so_duong_tang": "Đường dự báo tăng / 3", "so_cap": "Số cặp mã–mốc", "so_lan_tang": "Thực tế tăng", "ty_le_tang_thuc_te": "Tỷ lệ tăng thực tế"}), use_container_width=True, hide_index=True)
+        st.caption("Đây là tần suất hồi cứu trên giá truy hồi, chưa phải xác suất dự báo đã hiệu chỉnh. Các mã cùng ngày có tương quan và 5 đường trong giao diện không tương đương bộ 3 seed của bảng này.")
         st.caption("‘Luôn đoán tăng’ dự báo giá phiên 10 cao hơn giá tại mốc ở MỌI cặp mã–mốc; không liên quan đến 5 đường mẫu trên biểu đồ. ‘Đà giá 10 phiên’ dự báo hướng 10 phiên tới giống hướng 10 phiên vừa qua. Cả hai dùng cùng mẫu với Kronos.")
         mismatch_view = retro_panel.groupby(["seed", "calendar_mismatch"], as_index=False).agg(
             correct=("hit", "sum"), samples=("hit", "size"))
@@ -214,9 +264,24 @@ else:
                 dgw_summary = pd.read_csv(DGW_RUN / "summary.csv")
                 dgw_panel = pd.read_csv(DGW_RUN / "panel.csv")
                 dgw_outcomes = pd.read_csv(DGW_RUN / "outcomes.csv")
+                dgw_baseline_manifest = json.loads((DGW_BASELINE_RUN / "manifest.json").read_text())
+                for name, expected_hash in dgw_baseline_manifest["file_sha256"].items():
+                    if sha256(DGW_BASELINE_RUN / f"{name}.csv") != expected_hash:
+                        raise ValueError(f"DGW T=0,6: tệp {name}.csv không khớp bản đã khóa")
+                if any(dgw_manifest["file_sha256"][name] != dgw_baseline_manifest["file_sha256"][name]
+                       for name in ("exclusions", "inputs", "outcomes")):
+                    raise ValueError("Hai cấu hình T của DGW không dùng cùng đầu vào và kết quả thực tế")
+                dgw_baseline_summary = pd.read_csv(DGW_BASELINE_RUN / "summary.csv")
                 st.caption(f"DGW ngoài VN30: {dgw_manifest['selected_windows']}/{len(dgw_manifest['anchors'])} mốc đủ dữ liệu; "
                            f"{int(dgw_outcomes.calendar_mismatch.sum())} mốc lệch ngày ước tính. Dùng cùng seed và lịch như lô VN30.")
                 st.warning("Chỉ có 33 mốc DGW và giá lịch sử được truy hồi sau đó. Không chọn seed thắng nhất trên bảng này rồi xem đó là xác suất hay lợi thế giao dịch đã kiểm chứng.")
+                dgw_paired = dgw_summary[["seed", "correct", "samples", "win_rate"]].merge(
+                    dgw_baseline_summary[["seed", "correct", "samples", "win_rate"]],
+                    on=["seed", "samples"], suffixes=("_T1", "_T06"), validate="one_to_one")
+                dgw_paired["delta_pp"] = (dgw_paired.win_rate_T1 - dgw_paired.win_rate_T06) * 100
+                dgw_view = dgw_paired[["seed", "samples", "correct_T06", "correct_T1", "delta_pp"]].copy()
+                dgw_view["delta_pp"] = dgw_view.delta_pp.map(lambda value: f"{value:+.1f} điểm %")
+                st.dataframe(dgw_view.rename(columns={"seed": "Seed", "samples": "Số mốc DGW", "correct_T06": "T=0,6 đúng", "correct_T1": "T=1,0 đúng", "delta_pp": "Chênh tỷ lệ đúng"}), use_container_width=True, hide_index=True)
                 show_stock_replay(symbol, dgw_summary, dgw_panel, dgw_outcomes)
                 st.download_button("Tải kết quả DGW theo mốc và seed", (DGW_RUN / "panel.csv").read_bytes(),
                                    file_name="kronos_DGW_retrospective_panel.csv", mime="text/csv")
@@ -242,7 +307,7 @@ else:
 st.markdown("### Kiểm định tiến về sau")
 st.markdown("Lô mới khóa trước kết quả gồm **30 cổ phiếu × 3 seed cố định (42–44) × 10 phiên**. Dự báo, 90 nến đầu vào, cấu hình và dấu vân tay dữ liệu được lưu cùng thời điểm. Chỉ sau khi có đủ 10 phiên thực tế mới tính đúng hướng từng seed; không chọn lại seed theo lô đang kiểm tra.")
 if symbol in EXTRA_STOCKS:
-    st.caption("DGW chưa nằm trong lô niêm phong tiến về sau của 30 mã VN30 ngày 27/10/2026.")
+    st.caption("DGW chưa nằm trong các lô niêm phong tiến về sau dành riêng cho 30 mã VN30 ngày 27–28/10/2026.")
 runs = sorted(LEDGER.glob("20*")) if LEDGER.exists() else []
 if not runs:
     st.info("Chưa có lô dự báo được niêm phong. Vì thế hiện chưa có win rate ngoài mẫu để công bố.")
@@ -253,6 +318,22 @@ else:
             manifest = json.loads((run_dir / "manifest.json").read_text())
             panel = evaluate(run_dir)
             st.caption(f"Lô {manifest['cutoff']} · niêm phong {manifest['sealed_at_ict']} · {len(manifest['symbols'])} mã · seed {manifest['seeds']} · T={manifest['temperature']}, top-p={manifest['top_p']}")
+            if run_dir == runs[-1]:
+                sealed_paths = pd.read_csv(run_dir / "forecasts.csv")
+                sealed_inputs = pd.read_csv(run_dir / "inputs.csv")
+                last_prices = sealed_inputs.sort_values("date").groupby("symbol").tail(1)[["symbol", "close"]].rename(columns={"close": "gia_chot"})
+                sealed_final = sealed_paths.sort_values("date").groupby(["symbol", "seed"]).tail(1).merge(
+                    last_prices, on="symbol", validate="many_to_one")
+                sealed_final["loi_suat"] = sealed_final.close / sealed_final.gia_chot - 1
+                seed_returns = sealed_final.pivot(index="symbol", columns="seed", values="loi_suat")
+                seed_returns.columns = [f"Seed {seed}" for seed in seed_returns.columns]
+                seed_returns["Đường tăng"] = sealed_final.groupby("symbol").loi_suat.apply(lambda values: f"{int(values.gt(0).sum())}/{len(values)}")
+                seed_returns = seed_returns.reset_index().rename(columns={"symbol": "Mã"})
+                for seed in manifest["seeds"]:
+                    seed_returns[f"Seed {seed}"] = seed_returns[f"Seed {seed}"].map(lambda value: f"{value:+.1%}")
+                with st.expander(f"Đường mẫu T={manifest['temperature']} của 30 mã tại phiên {manifest['cutoff']}"):
+                    st.dataframe(seed_returns, use_container_width=True, hide_index=True)
+                    st.caption("Mỗi ô seed là lợi suất giá đóng cửa dự báo ở bước 10. 'Đường tăng' là tần suất 3 mẫu, không phải xác suất tăng đã hiệu chỉnh.")
             if panel.empty:
                 st.info("Lô này chưa đủ 10 phiên thực tế. Win rate sẽ chỉ xuất hiện sau khi bổ sung dữ liệu tương lai.")
             else:

@@ -21,6 +21,17 @@ import extra_replay  # noqa: E402
 
 
 class LeakageBoundaryTest(unittest.TestCase):
+    def test_latest_bars_and_default_temperature(self):
+        self.assertEqual(core.T, 1.0)
+        manifest = json.loads((core.HERE / "data_update_20261028" / "manifest.json").read_text())
+        self.assertEqual(manifest["target_session"], "2026-10-28")
+        self.assertEqual(manifest["rows"], 31)
+        self.assertEqual(set(manifest["symbols"]), set(core.current_members()) | {"DGW"})
+        self.assertEqual(hashlib.sha256((core.HERE / "data_update_20261028" /
+                                          "ohlcv_2026-10-28.csv").read_bytes()).hexdigest(), manifest["sha256"])
+        for symbol in manifest["symbols"]:
+            self.assertEqual(core.load_stock(symbol)[0].index[-1], "2026-10-28")
+
     def test_inference_input_has_no_future_labels(self):
         prepared = core.prepare("FPT", "2026-10-27")
         self.assertFalse(hasattr(prepared, "actual"))
@@ -53,7 +64,9 @@ class LeakageBoundaryTest(unittest.TestCase):
         manifest = json.loads((run / "manifest.json").read_text())
         self.assertEqual(len(manifest["symbols"]), 30)
         self.assertEqual(len(pd.read_csv(run / "forecasts.csv")), 900)
-        self.assertTrue(forward.evaluate(run).empty)
+        if all(len(core.realized_path(symbol, manifest["cutoff"])) < manifest["horizon"]
+               for symbol in manifest["symbols"]):
+            self.assertTrue(forward.evaluate(run).empty)
         with tempfile.TemporaryDirectory() as temp:
             copy = Path(temp)
             for name in ("manifest.json", "inputs.csv", "forecasts.csv"):
@@ -62,6 +75,17 @@ class LeakageBoundaryTest(unittest.TestCase):
                 handle.write(b"\n")
             with self.assertRaisesRegex(ValueError, "checksum mismatch"):
                 forward.evaluate(copy)
+
+    def test_october_28_temperature_one_run_is_sealed_without_outcomes(self):
+        run = forward.LEDGER / "2026-10-28"
+        manifest = json.loads((run / "manifest.json").read_text())
+        self.assertEqual(manifest["temperature"], 1.0)
+        self.assertEqual(manifest["cutoff"], "2026-10-28")
+        self.assertEqual(len(manifest["symbols"]), 30)
+        forecasts = pd.read_csv(run / "forecasts.csv")
+        self.assertEqual(len(forecasts), 900)
+        self.assertTrue(forecasts.date.gt(manifest["cutoff"]).all())
+        self.assertFalse((run / "outcomes.csv").exists())
 
     def test_retrospective_recomputes_from_saved_paths_and_outcomes(self):
         run = retrospective.RUN
@@ -94,8 +118,8 @@ class LeakageBoundaryTest(unittest.TestCase):
         self.assertEqual(len(core.current_members()), 30)
         self.assertNotIn("DGW", core.current_members())
         frame, metadata = core.load_stock("DGW")
-        self.assertEqual(frame.index[-1], "2026-10-27")
-        self.assertEqual(len(frame), metadata["rows"])
+        self.assertEqual(frame.index[-1], "2026-10-28")
+        self.assertEqual(len(frame), metadata["rows"] + 1)
         data_path = core.EXTRA_DATA_ROOT / "DGW.csv"
         self.assertEqual(hashlib.sha256(data_path.read_bytes()).hexdigest(), metadata["sha256"])
         self.assertEqual(len(core.prepare("DGW", "2026-10-27").history), 90)
@@ -119,6 +143,20 @@ class LeakageBoundaryTest(unittest.TestCase):
             subset = joined.seed.eq(seed)
             self.assertEqual(int(hits[subset].sum()), int(summary.loc[seed, "correct"]))
             self.assertEqual(int(subset.sum()), int(summary.loc[seed, "samples"]))
+
+    def test_temperature_replays_are_paired_without_new_labels(self):
+        for baseline in (retrospective.RUN, extra_replay.RUN):
+            candidate = baseline.with_name(baseline.name + "_T1")
+            old = json.loads((baseline / "manifest.json").read_text())
+            new = json.loads((candidate / "manifest.json").read_text())
+            self.assertEqual(old["temperature"], 0.6)
+            self.assertEqual(new["temperature"], 1.0)
+            for key in ("seeds", "top_p", "lookback", "horizon", "model_sha256", "tokenizer_sha256"):
+                self.assertEqual(old[key], new[key])
+            for name in ("inputs", "outcomes", "exclusions"):
+                self.assertEqual(old["file_sha256"][name], new["file_sha256"][name])
+            if baseline == retrospective.RUN:
+                self.assertEqual(old["file_sha256"]["plan"], new["file_sha256"]["plan"])
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Fetch a completed VN30 session and verify its overlap with the bundled data."""
+"""Fetch a completed session for the 30 VN30 stocks and separately labeled DGW."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-from core import current_members, load_stock
+from core import EXTRA_STOCKS, current_members, load_stock
 
 
 HERE = Path(__file__).resolve().parent
@@ -45,7 +45,7 @@ def main() -> None:
     target = datetime.strptime(args.date, "%Y-%m-%d").date()
     if target >= datetime.now(timezone(timedelta(hours=7))).date():
         # After the close, the current session can be available. Require explicit date,
-        # then verify all 30 bars below rather than assuming the feed is final.
+        # then verify all requested bars below rather than assuming the feed is final.
         print("Checking current-session bars explicitly; verify again after final close if needed.")
     to_stamp = int(datetime.combine(target + timedelta(days=2), datetime.min.time(),
                                     tzinfo=timezone(timedelta(hours=7))).timestamp())
@@ -56,7 +56,7 @@ def main() -> None:
         "Origin": "https://trading.vietcap.com.vn",
         "Content-Type": "application/json",
     })
-    members = current_members()
+    members = current_members() + list(EXTRA_STOCKS)
     rows, checks = [], []
     for number, symbol in enumerate(members, 1):
         response = session.post(URL, json={"timeFrame": "ONE_DAY", "symbols": [symbol],
@@ -67,8 +67,11 @@ def main() -> None:
             raise ValueError(f"No single-symbol bars for {symbol}")
         recent = decode(payload[0])
         known, _ = load_stock(symbol)
-        previous = known.iloc[-1]
-        previous_date = known.index[-1]
+        past_known = known.loc[known.index < args.date]
+        if past_known.empty:
+            raise ValueError(f"{symbol} has no session before {args.date}")
+        previous = past_known.iloc[-1]
+        previous_date = past_known.index[-1]
         if previous_date not in recent.index or args.date not in recent.index:
             raise ValueError(f"{symbol} missing overlap {previous_date} or target {args.date}")
         source_previous = recent.loc[previous_date]
@@ -92,8 +95,8 @@ def main() -> None:
         time.sleep(.15)
 
     output = pd.DataFrame(rows).sort_values("symbol").reset_index(drop=True)
-    if len(output) != 30 or output.symbol.nunique() != 30:
-        raise ValueError("Expected exactly 30 validated bars")
+    if len(output) != len(members) or output.symbol.nunique() != len(members):
+        raise ValueError(f"Expected exactly {len(members)} validated bars")
     directory = HERE / f"data_update_{target:%Y%m%d}"
     directory.mkdir(parents=True, exist_ok=True)
     csv_bytes = output.to_csv(index=False).encode("utf-8")

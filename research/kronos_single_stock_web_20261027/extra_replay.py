@@ -22,9 +22,10 @@ SYMBOL = "DGW"
 RUN = HERE / "extra_replay_runs" / "DGW_2025-07_to_2026-10"
 
 
-def build() -> Path:
-    if RUN.exists():
-        raise FileExistsError(f"DGW replay already exists: {RUN}")
+def build(*, temperature: float = T, destination: Path = RUN,
+          paired_baseline: Path | None = None) -> Path:
+    if destination.exists():
+        raise FileExistsError(f"DGW replay already exists: {destination}")
     calendar = [day for day in load_calendar() if day <= END]
     first = next(i for i, day in enumerate(calendar) if day >= START)
     anchors = [calendar[i] for i in range(first, len(calendar) - HORIZON, HORIZON)]
@@ -47,8 +48,8 @@ def build() -> Path:
             selected.append(cutoff)
     if not selected:
         raise ValueError("DGW has no complete replay windows")
-    RUN.parent.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="dgw_pending_", dir=RUN.parent) as temporary:
+    destination.parent.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="dgw_pending_", dir=destination.parent) as temporary:
         work = Path(temporary)
         pd.DataFrame(excluded, columns=["cutoff", "reason"]).to_csv(work / "exclusions.csv", index=False)
         inputs, prepared = [], []
@@ -59,11 +60,16 @@ def build() -> Path:
             history.insert(0, "cutoff", cutoff)
             inputs.append(history)
         pd.concat(inputs, ignore_index=True).to_csv(work / "inputs.csv", index=False)
+        if paired_baseline is not None:
+            baseline_manifest = json.loads((paired_baseline / "manifest.json").read_text())
+            for name in ("exclusions", "inputs"):
+                if sha256(work / f"{name}.csv") != baseline_manifest["file_sha256"][name]:
+                    raise ValueError(f"Paired DGW replay changed {name}.csv; aborting")
         predictor, device, lock = load_predictor()
         forecasts = []
         for number, item in enumerate(prepared, 1):
             for seed in SEEDS:
-                path = predict(item, predictor, lock, seed, T, TOP_P)
+                path = predict(item, predictor, lock, seed, temperature, TOP_P)
                 path.insert(0, "seed", seed)
                 path.insert(0, "cutoff", item.cutoff)
                 forecasts.append(path)
@@ -100,6 +106,9 @@ def build() -> Path:
                                "always_up_hit": int(actual_return > 0),
                                "calendar_mismatch": mismatch})
         pd.DataFrame(outcomes).to_csv(work / "outcomes.csv", index=False)
+        if paired_baseline is not None:
+            if sha256(work / "outcomes.csv") != baseline_manifest["file_sha256"]["outcomes"]:
+                raise ValueError("Paired DGW replay changed outcomes.csv; aborting")
         panel = pd.DataFrame(trials)
         panel.to_csv(work / "panel.csv", index=False)
         summary = panel.groupby("seed", as_index=False).agg(
@@ -119,7 +128,8 @@ def build() -> Path:
             "model_revision": MODEL_REVISION, "tokenizer_revision": TOKENIZER_REVISION,
             "model_sha256": sha256(_checkpoint_file("NeoQuasar/Kronos-small", MODEL_REVISION)),
             "tokenizer_sha256": sha256(_checkpoint_file("NeoQuasar/Kronos-Tokenizer-base", TOKENIZER_REVISION)),
-            "seeds": list(SEEDS), "temperature": T, "top_p": TOP_P,
+            "seeds": list(SEEDS), "temperature": temperature, "top_p": TOP_P,
+            "paired_baseline": str(paired_baseline) if paired_baseline else None,
             "lookback": LOOKBACK, "horizon": HORIZON, "device": device,
             "source_sha256": {"core.py": sha256(HERE / "core.py"),
                               "extra_replay.py": sha256(HERE / "extra_replay.py")},
@@ -127,9 +137,16 @@ def build() -> Path:
                             ("exclusions", "inputs", "forecasts", "outcomes", "panel", "summary")},
         }
         (work / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
-        work.rename(RUN)
-    return RUN
+        work.rename(destination)
+    return destination
 
 
 if __name__ == "__main__":
-    print(build())
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--temperature", type=float, default=T)
+    parser.add_argument("--destination", type=Path, default=RUN)
+    parser.add_argument("--paired-baseline", type=Path)
+    args = parser.parse_args()
+    print(build(temperature=args.temperature, destination=args.destination,
+                paired_baseline=args.paired_baseline))

@@ -125,16 +125,17 @@ def _score(work: Path, selected: list[tuple[str, str]]) -> None:
     ).to_csv(work / "per_date.csv", index=False)
 
 
-def build() -> Path:
+def build(*, temperature: float = T, destination: Path = RUN,
+          paired_baseline: Path | None = None) -> Path:
     import torch
 
-    if RUN.exists():
-        raise FileExistsError(f"Lô hồi cứu đã có: {RUN}")
+    if destination.exists():
+        raise FileExistsError(f"Lô hồi cứu đã có: {destination}")
     selected, excluded, schedule = plan()
     if not selected:
         raise ValueError("Không có mốc hợp lệ")
-    RUN.parent.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="retro_pending_", dir=RUN.parent) as temporary:
+    destination.parent.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="retro_pending_", dir=destination.parent) as temporary:
         work = Path(temporary)
         excluded.to_csv(work / "exclusions.csv", index=False)
         pd.DataFrame(selected, columns=["symbol", "cutoff"]).to_csv(work / "plan.csv", index=False)
@@ -148,13 +149,18 @@ def build() -> Path:
             bars.insert(0, "symbol", symbol)
             input_parts.append(bars)
         pd.concat(input_parts, ignore_index=True).to_csv(work / "inputs.csv", index=False)
+        if paired_baseline is not None:
+            baseline_manifest = json.loads((paired_baseline / "manifest.json").read_text())
+            for name in ("plan", "exclusions", "inputs"):
+                if sha256(work / f"{name}.csv") != baseline_manifest["file_sha256"][name]:
+                    raise ValueError(f"Paired replay changed {name}.csv; aborting")
         predictor, device, lock = load_predictor()
         forecasts = []
         done = 0
         for symbol in current_members():
             for item in (item for item in prepared_items if item.symbol == symbol):
                 for seed in SEEDS:
-                    path = predict(item, predictor, lock, seed, T, TOP_P)
+                    path = predict(item, predictor, lock, seed, temperature, TOP_P)
                     path.insert(0, "seed", seed)
                     path.insert(0, "cutoff", item.cutoff)
                     path.insert(0, "symbol", symbol)
@@ -163,6 +169,10 @@ def build() -> Path:
             print(f"{symbol}: {done}/{len(selected) * len(SEEDS)} paths", flush=True)
         pd.concat(forecasts, ignore_index=True).to_csv(work / "forecasts.csv", index=False)
         _score(work, selected)
+        if paired_baseline is not None:
+            for name in ("outcomes",):
+                if sha256(work / f"{name}.csv") != baseline_manifest["file_sha256"][name]:
+                    raise ValueError(f"Paired replay changed {name}.csv; aborting")
         manifest = {
             "kind": "exploratory_retrospective_not_point_in_time",
             "created_at_ict": datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")).isoformat(),
@@ -174,7 +184,8 @@ def build() -> Path:
             "model_revision": MODEL_REVISION, "tokenizer_revision": TOKENIZER_REVISION,
             "model_sha256": sha256(_checkpoint_file("NeoQuasar/Kronos-small", MODEL_REVISION)),
             "tokenizer_sha256": sha256(_checkpoint_file("NeoQuasar/Kronos-Tokenizer-base", TOKENIZER_REVISION)),
-            "seeds": list(SEEDS), "temperature": T, "top_p": TOP_P,
+            "seeds": list(SEEDS), "temperature": temperature, "top_p": TOP_P,
+            "paired_baseline": str(paired_baseline) if paired_baseline else None,
             "lookback": LOOKBACK, "horizon": HORIZON, "device": device,
             "python": platform.python_version(), "torch": torch.__version__,
             "pandas": pd.__version__, "numpy": np.__version__,
@@ -186,9 +197,16 @@ def build() -> Path:
                              "panel", "summary", "per_stock", "per_date")},
         }
         (work / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
-        work.rename(RUN)
-    return RUN
+        work.rename(destination)
+    return destination
 
 
 if __name__ == "__main__":
-    print(build())
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--temperature", type=float, default=T)
+    parser.add_argument("--destination", type=Path, default=RUN)
+    parser.add_argument("--paired-baseline", type=Path)
+    args = parser.parse_args()
+    print(build(temperature=args.temperature, destination=args.destination,
+                paired_baseline=args.paired_baseline))
