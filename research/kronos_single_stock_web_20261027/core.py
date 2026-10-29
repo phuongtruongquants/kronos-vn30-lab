@@ -18,6 +18,13 @@ HERE = Path(__file__).resolve().parent
 DATA_ROOT = HERE.parent / "vn30_long_20261026" / "data"
 EXTRA_DATA_ROOT = HERE / "extra_stock_data"
 EXTRA_STOCKS = ("DGW",)
+STOCK_SPLITS = {
+    "TCB": {
+        "ex_date": "2026-10-29",
+        "shares_after_per_before": 1.5,
+        "official_notice_url": "https://staticfile.hsx.vn/Uploads/UploadDocuments/2507504/20261023%20-%20TCB%20-%20TB%20NDKCC%20phat%20hanh%20CP%20de%20tra%20co%20tuc.pdf",
+    },
+}
 MEMBERSHIP = HERE.parent / "vn30_long_20261026" / "membership_intervals_2018_2026.csv"
 UPSTREAM_COMMIT = "67b630e67f6a18c9e9be918d9b4337c960db1e9a"
 MODEL_REVISION = "901c26c1332695a2a8f243eb2f37243a37bea320"
@@ -130,6 +137,11 @@ def prepare(symbol: str, cutoff: str) -> Prepared:
     if len(history_dates) != LOOKBACK or any(date not in frame.index for date in history_dates):
         raise ValueError("Mã này không đủ 90 phiên liên tục trước ngày chốt")
     history = frame.loc[history_dates].copy()
+    split = STOCK_SPLITS.get(symbol)
+    if split is not None and cutoff >= split["ex_date"]:
+        old_basis = history["date"].lt(split["ex_date"])
+        history.loc[old_basis, ["open", "high", "low", "close"]] /= split["shares_after_per_before"]
+        history.loc[old_basis, "volume"] *= split["shares_after_per_before"]
     values = history[["open", "high", "low", "close", "volume"]].to_numpy(float)
     if not np.isfinite(values).all() or (values <= 0).any():
         raise ValueError("Dữ liệu nến đầu vào chứa giá hoặc khối lượng không hợp lệ")
@@ -152,7 +164,13 @@ def realized_path(symbol: str, cutoff: str) -> pd.DataFrame:
     if cutoff not in sessions:
         raise ValueError("Ngày chốt không có trong lịch phiên")
     dates = [date for date in sessions[sessions.index(cutoff) + 1:] if date in frame.index]
-    return frame.loc[dates[:HORIZON]].copy() if dates else frame.iloc[0:0].copy()
+    realized = frame.loc[dates[:HORIZON]].copy() if dates else frame.iloc[0:0].copy()
+    split = STOCK_SPLITS.get(symbol)
+    if split is not None and cutoff < split["ex_date"]:
+        new_basis = realized["date"].ge(split["ex_date"])
+        realized.loc[new_basis, ["open", "high", "low", "close"]] *= split["shares_after_per_before"]
+        realized.loc[new_basis, "volume"] /= split["shares_after_per_before"]
+    return realized
 
 
 def locate_upstream() -> Path:

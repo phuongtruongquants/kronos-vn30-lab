@@ -179,7 +179,9 @@ else:
 
 st.markdown("### Giả lập hồi cứu trên giá lịch sử")
 st.caption("Cố định lịch từ 01/07/2025 đến 27/10/2026, dự báo 10 phiên sau mỗi 10 phiên, ba seed 42–44. Không chọn seed thắng từ kết quả. Chỉ loại cửa sổ thiếu 90 nến đầu vào, có nến đầu vào không hợp lệ hoặc thiếu 10 phiên kết quả. Chấm theo thứ tự phiên; ngày dự báo có thể lệch lịch giao dịch quanh ngày nghỉ.")
-st.warning("Đây là **hồi cứu thăm dò**, không phải win rate ngoài mẫu chống leakage hoàn toàn: giá VCI/Vnstock lịch sử được truy hồi sau các mốc, và rổ 30 mã theo kỳ tháng 8/2026. Dữ liệu mới nhất 28/10/2026 của cả 30 mã và DGW là lớp bổ sung riêng; các mốc hồi cứu vẫn kết thúc 27/10. T=1 được chọn sau khi đã xem kết quả T=0,6, nên so sánh này cũng là bước điều chỉnh mô hình, chưa chứng minh lợi thế giao dịch.")
+latest_label = pd.Timestamp(frame.index[-1]).strftime("%d/%m/%Y")
+st.warning(f"Đây là **hồi cứu thăm dò**, không phải win rate ngoài mẫu chống leakage hoàn toàn: giá VCI/Vnstock lịch sử được truy hồi sau các mốc, và rổ 30 mã theo kỳ tháng 8/2026. Dữ liệu mới nhất {latest_label} của cả 30 mã và DGW là lớp bổ sung riêng; các mốc hồi cứu vẫn kết thúc 27/10. T=1 được chọn sau khi đã xem kết quả T=0,6, nên so sánh này cũng là bước điều chỉnh mô hình, chưa chứng minh lợi thế giao dịch.")
+st.caption("TCB giao dịch không hưởng quyền ngày 29/10/2026 để nhận cổ tức cổ phiếu 50%. Đầu vào từ ngày này quy đổi các nến cũ về cùng thang giá; các lô dự báo đã niêm phong trước đó giữ nguyên thang giá cũ và chỉ quy đổi giá thực tế khi chấm. [Thông báo HOSE](https://staticfile.hsx.vn/Uploads/UploadDocuments/2507504/20261023%20-%20TCB%20-%20TB%20NDKCC%20phat%20hanh%20CP%20de%20tra%20co%20tuc.pdf).")
 if not (RETRO_RUN / "manifest.json").exists():
     st.info("Lô hồi cứu dài hơn đang được tính; bảng kết quả sẽ xuất hiện sau khi hoàn tất và kiểm tra đủ đường dự báo.")
 else:
@@ -307,7 +309,7 @@ else:
 st.markdown("### Kiểm định tiến về sau")
 st.markdown("Lô mới khóa trước kết quả gồm **30 cổ phiếu × 3 seed cố định (42–44) × 10 phiên**. Dự báo, 90 nến đầu vào, cấu hình và dấu vân tay dữ liệu được lưu cùng thời điểm. Chỉ sau khi có đủ 10 phiên thực tế mới tính đúng hướng từng seed; không chọn lại seed theo lô đang kiểm tra.")
 if symbol in EXTRA_STOCKS:
-    st.caption("DGW chưa nằm trong các lô niêm phong tiến về sau dành riêng cho 30 mã VN30 ngày 27–28/10/2026.")
+    st.caption("DGW chưa nằm trong các lô niêm phong tiến về sau dành riêng cho 30 mã VN30 ngày 27–29/10/2026.")
 runs = sorted(LEDGER.glob("20*")) if LEDGER.exists() else []
 if not runs:
     st.info("Chưa có lô dự báo được niêm phong. Vì thế hiện chưa có win rate ngoài mẫu để công bố.")

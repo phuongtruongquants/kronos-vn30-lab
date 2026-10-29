@@ -23,14 +23,33 @@ import extra_replay  # noqa: E402
 class LeakageBoundaryTest(unittest.TestCase):
     def test_latest_bars_and_default_temperature(self):
         self.assertEqual(core.T, 1.0)
-        manifest = json.loads((core.HERE / "data_update_20261028" / "manifest.json").read_text())
-        self.assertEqual(manifest["target_session"], "2026-10-28")
-        self.assertEqual(manifest["rows"], 31)
-        self.assertEqual(set(manifest["symbols"]), set(core.current_members()) | {"DGW"})
-        self.assertEqual(hashlib.sha256((core.HERE / "data_update_20261028" /
-                                          "ohlcv_2026-10-28.csv").read_bytes()).hexdigest(), manifest["sha256"])
+        for date in ("2026-10-28", "2026-10-29"):
+            directory = core.HERE / f"data_update_{date.replace('-', '')}"
+            manifest = json.loads((directory / "manifest.json").read_text())
+            self.assertEqual(manifest["target_session"], date)
+            self.assertEqual(manifest["rows"], 31)
+            self.assertEqual(set(manifest["symbols"]), set(core.current_members()) | {"DGW"})
+            self.assertEqual(hashlib.sha256((directory / f"ohlcv_{date}.csv").read_bytes()).hexdigest(), manifest["sha256"])
         for symbol in manifest["symbols"]:
-            self.assertEqual(core.load_stock(symbol)[0].index[-1], "2026-10-28")
+            self.assertEqual(core.load_stock(symbol)[0].index[-1], "2026-10-29")
+        tcb = next(check for check in manifest["checks"] if check["symbol"] == "TCB")
+        self.assertEqual(tcb["overlap_price_divisor"], 1.5)
+        self.assertTrue(tcb["overlap_volume_verified"])
+        self.assertEqual(manifest["corporate_actions"][0]["symbol"], "TCB")
+
+    def test_tcb_stock_dividend_keeps_forecasts_on_their_cutoff_basis(self):
+        raw, _ = core.load_stock("TCB")
+        before = core.prepare("TCB", "2026-10-28")
+        after = core.prepare("TCB", "2026-10-29")
+        self.assertAlmostEqual(float(before.history.loc["2026-10-28", "close"]),
+                               float(raw.loc["2026-10-28", "close"]))
+        self.assertAlmostEqual(float(after.history.loc["2026-10-28", "close"]),
+                               float(raw.loc["2026-10-28", "close"]) / 1.5)
+        self.assertAlmostEqual(float(after.history.loc["2026-10-29", "close"]),
+                               float(raw.loc["2026-10-29", "close"]))
+        realized = core.realized_path("TCB", "2026-10-28")
+        self.assertAlmostEqual(float(realized.loc["2026-10-29", "close"]),
+                               float(raw.loc["2026-10-29", "close"]) * 1.5)
 
     def test_inference_input_has_no_future_labels(self):
         prepared = core.prepare("FPT", "2026-10-27")
@@ -87,6 +106,17 @@ class LeakageBoundaryTest(unittest.TestCase):
         self.assertTrue(forecasts.date.gt(manifest["cutoff"]).all())
         self.assertFalse((run / "outcomes.csv").exists())
 
+    def test_october_29_run_uses_adjusted_tcb_input_and_no_outcomes(self):
+        run = forward.LEDGER / "2026-10-29"
+        manifest = json.loads((run / "manifest.json").read_text())
+        self.assertEqual(manifest["temperature"], 1.0)
+        self.assertEqual(len(manifest["symbols"]), 30)
+        inputs = pd.read_csv(run / "inputs.csv")
+        tcb = inputs.loc[inputs.symbol.eq("TCB")].set_index("date")
+        self.assertAlmostEqual(float(tcb.loc["2026-10-28", "close"]), 33.5 / 1.5)
+        self.assertAlmostEqual(float(tcb.loc["2026-10-29", "close"]), 22.35)
+        self.assertFalse((run / "outcomes.csv").exists())
+
     def test_retrospective_recomputes_from_saved_paths_and_outcomes(self):
         run = retrospective.RUN
         manifest = json.loads((run / "manifest.json").read_text())
@@ -118,8 +148,8 @@ class LeakageBoundaryTest(unittest.TestCase):
         self.assertEqual(len(core.current_members()), 30)
         self.assertNotIn("DGW", core.current_members())
         frame, metadata = core.load_stock("DGW")
-        self.assertEqual(frame.index[-1], "2026-10-28")
-        self.assertEqual(len(frame), metadata["rows"] + 1)
+        self.assertEqual(frame.index[-1], "2026-10-29")
+        self.assertEqual(len(frame), metadata["rows"] + 2)
         data_path = core.EXTRA_DATA_ROOT / "DGW.csv"
         self.assertEqual(hashlib.sha256(data_path.read_bytes()).hexdigest(), metadata["sha256"])
         self.assertEqual(len(core.prepare("DGW", "2026-10-27").history), 90)

@@ -1,0 +1,363 @@
+{
+  "target_session": "2026-10-29",
+  "retrieved_at_utc": "2026-10-29T14:17:27.570331+00:00",
+  "source": "Vietcap trading chart OHLCChart/gap-chart via direct HTTPS",
+  "source_url": "https://trading.vietcap.com.vn/api/chart/OHLCChart/gap-chart",
+  "price_unit": "thousand VND; VCI integer price / 1000",
+  "adjustment_check": "Prior session OHLCV checked against bundled adjusted history",
+  "symbols": [
+    "ACB",
+    "BID",
+    "BSR",
+    "CTG",
+    "FPT",
+    "GAS",
+    "GVR",
+    "HDB",
+    "HPG",
+    "LPB",
+    "MBB",
+    "MCH",
+    "MSN",
+    "MWG",
+    "SAB",
+    "SHB",
+    "SSB",
+    "SSI",
+    "STB",
+    "TCB",
+    "TCX",
+    "VCB",
+    "VHM",
+    "VIB",
+    "VIC",
+    "VJC",
+    "VNM",
+    "VPB",
+    "VPL",
+    "VRE",
+    "DGW"
+  ],
+  "rows": 31,
+  "sha256": "023e1df9ef57e51cb96c87ddfe52f18bc89f3deacbc3f9299f0dd1876e3f6029",
+  "checks": [
+    {
+      "symbol": "ACB",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "BID",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "BSR",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "CTG",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "FPT",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "GAS",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "GVR",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "HDB",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "HPG",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "LPB",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "MBB",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "MCH",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "MSN",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "MWG",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "SAB",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "SHB",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "SSB",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "SSI",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "STB",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "TCB",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 4.99975001250208e-05,
+      "overlap_volume_equal": false,
+      "overlap_volume_relative_difference": 0.0010228163666538004,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.5,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "TCX",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "VCB",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "VHM",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "VIB",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "VIC",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "VJC",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "VNM",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "VPB",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "VPL",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "VRE",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    },
+    {
+      "symbol": "DGW",
+      "overlap_date": "2026-10-28",
+      "overlap_max_relative_difference": 0.0,
+      "overlap_volume_equal": true,
+      "overlap_volume_relative_difference": 0.0,
+      "overlap_volume_verified": true,
+      "overlap_price_divisor": 1.0,
+      "source_latest_date": "2026-10-29"
+    }
+  ],
+  "corporate_actions": [
+    {
+      "symbol": "TCB",
+      "ex_date": "2026-10-29",
+      "shares_after_per_before": 1.5,
+      "official_notice_url": "https://staticfile.hsx.vn/Uploads/UploadDocuments/2507504/20261023%20-%20TCB%20-%20TB%20NDKCC%20phat%20hanh%20CP%20de%20tra%20co%20tuc.pdf"
+    }
+  ]
+}

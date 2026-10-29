@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-from core import EXTRA_STOCKS, current_members, load_stock
+from core import EXTRA_STOCKS, STOCK_SPLITS, current_members, load_stock
 
 
 HERE = Path(__file__).resolve().parent
@@ -75,11 +75,16 @@ def main() -> None:
         if previous_date not in recent.index or args.date not in recent.index:
             raise ValueError(f"{symbol} missing overlap {previous_date} or target {args.date}")
         source_previous = recent.loc[previous_date]
-        relative = max(abs(float(previous[field]) / float(source_previous[field]) - 1)
+        split = STOCK_SPLITS.get(symbol)
+        ex_session = split is not None and args.date == split["ex_date"]
+        price_divisor = split["shares_after_per_before"] if ex_session else 1.0
+        relative = max(abs(float(previous[field]) / price_divisor / float(source_previous[field]) - 1)
                        for field in ("open", "high", "low", "close"))
         volume_equal = int(previous["volume"]) == int(source_previous["volume"])
-        if relative > .001 or not volume_equal:
-            raise ValueError(f"{symbol} overlap changed: {relative:.4%}, volume equal={volume_equal}")
+        volume_relative = abs(float(previous["volume"]) / float(source_previous["volume"]) - 1)
+        volume_verified = volume_relative <= .005 if ex_session else volume_equal
+        if relative > .001 or not volume_verified:
+            raise ValueError(f"{symbol} overlap changed: {relative:.4%}, volume difference {volume_relative:.4%}")
         bar = recent.loc[args.date]
         values = bar[["open", "high", "low", "close", "volume"]].to_numpy(float)
         if (not np.isfinite(values).all() or (values <= 0).any()
@@ -90,6 +95,9 @@ def main() -> None:
         checks.append({"symbol": symbol, "overlap_date": previous_date,
                        "overlap_max_relative_difference": relative,
                        "overlap_volume_equal": volume_equal,
+                       "overlap_volume_relative_difference": volume_relative,
+                       "overlap_volume_verified": volume_verified,
+                       "overlap_price_divisor": price_divisor,
                        "source_latest_date": recent.index[-1]})
         print(f"[{number}/{len(members)}] {symbol}: {bar['close']:.3f}, overlap {relative:.4%}", flush=True)
         time.sleep(.15)
@@ -112,6 +120,11 @@ def main() -> None:
         "rows": len(output),
         "sha256": hashlib.sha256(csv_bytes).hexdigest(),
         "checks": checks,
+        "corporate_actions": [
+            {"symbol": symbol, **STOCK_SPLITS[symbol]}
+            for symbol in members if symbol in STOCK_SPLITS
+            and STOCK_SPLITS[symbol]["ex_date"] == args.date
+        ],
     }
     (directory / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"Saved {len(output)} validated bars to {directory}")
