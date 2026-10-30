@@ -17,7 +17,9 @@ import streamlit.components.v1 as components
 # Streamlit Cloud can rerun app.py in a live interpreter while retaining the
 # earlier core module. Reload the local source before importing new symbols.
 import core as core_module
+import chart as chart_module
 importlib.reload(core_module)
+importlib.reload(chart_module)
 from chart import chart_html
 from core import EXTRA_STOCKS, HORIZON, LOOKBACK, MODEL_REVISION, T, TOP_P, current_members, eligible_cutoffs, load_stock, prepare, realized_path
 from extra_replay import RUN as DGW_BASELINE_RUN
