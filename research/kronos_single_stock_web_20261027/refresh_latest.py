@@ -18,6 +18,13 @@ from core import EXTRA_STOCKS, STOCK_SPLITS, current_members, load_stock
 
 HERE = Path(__file__).resolve().parent
 URL = "https://trading.vietcap.com.vn/api/chart/OHLCChart/gap-chart"
+VERIFIED_VOLUME_REVISIONS = {
+    ("TCB", "2026-10-30"): {
+        "overlap_date": "2026-10-29",
+        "revised_volume": 23670705,
+        "reference": "FiinX unadjusted daily OHLCV checked 2026-11-02",
+    },
+}
 
 
 def decode(raw: dict) -> pd.DataFrame:
@@ -82,7 +89,12 @@ def main() -> None:
                        for field in ("open", "high", "low", "close"))
         volume_equal = int(previous["volume"]) == int(source_previous["volume"])
         volume_relative = abs(float(previous["volume"]) / float(source_previous["volume"]) - 1)
-        volume_verified = volume_relative <= .005 if ex_session else volume_equal
+        volume_revision = VERIFIED_VOLUME_REVISIONS.get((symbol, args.date))
+        revision_verified = (volume_revision is not None
+                             and previous_date == volume_revision["overlap_date"]
+                             and int(source_previous["volume"]) == volume_revision["revised_volume"]
+                             and volume_relative <= .005)
+        volume_verified = volume_relative <= .005 if ex_session else volume_equal or revision_verified
         if relative > .001 or not volume_verified:
             raise ValueError(f"{symbol} overlap changed: {relative:.4%}, volume difference {volume_relative:.4%}")
         bar = recent.loc[args.date]
@@ -97,6 +109,7 @@ def main() -> None:
                        "overlap_volume_equal": volume_equal,
                        "overlap_volume_relative_difference": volume_relative,
                        "overlap_volume_verified": volume_verified,
+                       "overlap_volume_revision": volume_revision if revision_verified else None,
                        "overlap_price_divisor": price_divisor,
                        "source_latest_date": recent.index[-1]})
         print(f"[{number}/{len(members)}] {symbol}: {bar['close']:.3f}, overlap {relative:.4%}", flush=True)

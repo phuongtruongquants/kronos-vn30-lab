@@ -313,6 +313,8 @@ st.markdown("Lô mới khóa trước kết quả gồm **30 cổ phiếu × 3 s
 if symbol in EXTRA_STOCKS:
     st.caption("DGW chưa nằm trong các lô niêm phong tiến về sau dành riêng cho 30 mã VN30 ngày 27–29/10/2026.")
 runs = sorted(LEDGER.glob("20*")) if LEDGER.exists() else []
+if runs and frame.index[-1] > runs[-1].name:
+    st.caption(f"Giá đã có tới {frame.index[-1]}; lô dự báo niêm phong gần nhất là {runs[-1].name}. Dữ liệu bổ sung sau phiên không được dùng để tạo lô dự báo quá khứ.")
 if not runs:
     st.info("Chưa có lô dự báo được niêm phong. Vì thế hiện chưa có win rate ngoài mẫu để công bố.")
 else:
