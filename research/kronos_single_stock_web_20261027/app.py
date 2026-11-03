@@ -31,6 +31,23 @@ DGW_RUN = DGW_BASELINE_RUN.with_name(DGW_BASELINE_RUN.name + "_T1")
 
 
 st.set_page_config(page_title="Kronos Lab · VN30", page_icon="📈", layout="wide")
+if st.query_params.get("report") == "8":
+    report_root = Path(__file__).parent / "published_reports"
+    report_prefix = "eight_stocks_20261102"
+    st.title("Kronos · 8 mã")
+    st.caption("Dự báo tính từ giá đóng cửa 02/11/2026. Bản lưu cố định, không tự cập nhật theo giá trong phiên.")
+    for column, suffix, label, mime in zip(
+        st.columns(3),
+        ("forecasts.csv", "manifest.json", "fiinx_crosscheck_20261102.json"),
+        ("Tải đường dự báo", "Tải cấu hình và nguồn", "Tải đối chiếu giá"),
+        ("text/csv", "application/json", "application/json"),
+    ):
+        path = report_root / f"{report_prefix}_{suffix}"
+        column.download_button(label, path.read_bytes(), file_name=path.name, mime=mime)
+    components.html((report_root / f"{report_prefix}.html").read_text(encoding="utf-8"),
+                    height=1800, scrolling=True)
+    st.stop()
+
 st.markdown("""
 <style>
 .stApp{background:#f5f7f6;color:#15231f}.block-container{max-width:1420px;padding-top:2.2rem}
@@ -99,7 +116,8 @@ def show_stock_replay(symbol: str, stock_summary: pd.DataFrame,
 st.markdown('<div class="eyebrow">Thử riêng mô hình · không có chiến lược giao dịch</div>', unsafe_allow_html=True)
 st.title("Kronos Lab")
 st.markdown('<div class="subtle">Chọn một trong 30 cổ phiếu VN30 hoặc DGW để xem các đường dự báo 10 phiên từ 90 nến. Kết quả đáng tin cậy phải được lưu trước khi có giá tương lai.</div>', unsafe_allow_html=True)
-st.page_link("pages/01_Bao_cao_8_ma.py", label="📊 Báo cáo sẵn: 8 mã chốt 02/11 (không chạy lại mô hình)")
+st.link_button("📊 Báo cáo sẵn: 8 mã chốt 02/11 (không chạy lại mô hình)",
+               "https://kronos-vn30-lab.streamlit.app/?report=8")
 
 members = current_members()
 with st.sidebar:

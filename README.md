@@ -8,7 +8,7 @@ DGW uses a separate VCI price snapshot and a separate 33-window retrospective wi
 
 Entrypoint: `research/kronos_single_stock_web_20261027/app.py`
 
-The sidebar also has a precomputed eight-stock report anchored at the completed 2026-11-02 session. It loads without running inference. The public report excludes the owner's personal portfolio positions; the forecast CSV and run manifest can be downloaded from its page.
+The main page links to a precomputed eight-stock report at `?report=8`, anchored at the completed 2026-11-02 session. It loads without running inference. The public report excludes the owner's personal portfolio positions; the forecast CSV and run manifest can be downloaded from its page.
 
 ```bash
 pip install -r requirements.txt
