@@ -1,0 +1,79 @@
+{
+  "retrieved_at_utc": "2026-11-02 08:06:21 UTC",
+  "source": "FiinXMCP fetch_trading_data, unadjusted 1d, period=5, include_unclosed=true",
+  "date": "2026-11-02",
+  "rows": [
+    {
+      "timestamp": "2026-11-02 14:46",
+      "ticker": "DGW",
+      "open": 40150,
+      "high": 40850,
+      "low": 38100,
+      "close": 38150,
+      "volume": 3314700
+    },
+    {
+      "timestamp": "2026-11-02 14:46",
+      "ticker": "FPT",
+      "open": 52400,
+      "high": 52500,
+      "low": 50100,
+      "close": 50200,
+      "volume": 12293400
+    },
+    {
+      "timestamp": "2026-11-02 14:46",
+      "ticker": "HPG",
+      "open": 21000,
+      "high": 21100,
+      "low": 20350,
+      "close": 20400,
+      "volume": 25465100
+    },
+    {
+      "timestamp": "2026-11-02 14:46",
+      "ticker": "MBB",
+      "open": 19300,
+      "high": 19300,
+      "low": 18600,
+      "close": 18750,
+      "volume": 23936700
+    },
+    {
+      "timestamp": "2026-11-02 14:50",
+      "ticker": "MWG",
+      "open": 73800,
+      "high": 73800,
+      "low": 71300,
+      "close": 72400,
+      "volume": 4855000
+    },
+    {
+      "timestamp": "2026-11-02 14:48",
+      "ticker": "TCB",
+      "open": 21550,
+      "high": 21550,
+      "low": 20600,
+      "close": 21400,
+      "volume": 25386500
+    },
+    {
+      "timestamp": "2026-11-02 14:46",
+      "ticker": "VCB",
+      "open": 56100,
+      "high": 56200,
+      "low": 53300,
+      "close": 53600,
+      "volume": 14009100
+    },
+    {
+      "timestamp": "2026-11-02 14:49",
+      "ticker": "VPB",
+      "open": 22700,
+      "high": 22750,
+      "low": 21550,
+      "close": 21550,
+      "volume": 19691800
+    }
+  ]
+}

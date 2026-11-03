@@ -99,6 +99,7 @@ def show_stock_replay(symbol: str, stock_summary: pd.DataFrame,
 st.markdown('<div class="eyebrow">Thử riêng mô hình · không có chiến lược giao dịch</div>', unsafe_allow_html=True)
 st.title("Kronos Lab")
 st.markdown('<div class="subtle">Chọn một trong 30 cổ phiếu VN30 hoặc DGW để xem các đường dự báo 10 phiên từ 90 nến. Kết quả đáng tin cậy phải được lưu trước khi có giá tương lai.</div>', unsafe_allow_html=True)
+st.page_link("pages/01_Bao_cao_8_ma.py", label="📊 Báo cáo sẵn: 8 mã chốt 02/11 (không chạy lại mô hình)")
 
 members = current_members()
 with st.sidebar:

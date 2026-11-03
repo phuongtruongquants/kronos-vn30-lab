@@ -1,0 +1,56 @@
+{
+  "created_at_ict": "2026-11-02T14:51:43.719139+07:00",
+  "cutoff": "2026-11-02",
+  "source": "Vietcap VCI via existing local VN30/DGW cache plus dated overlays",
+  "data_basis": "historical cache retrospectively adjusted; TCB pre-2026-10-29 input is put on the post-1.5-for-1 split basis; latest overlay unadjusted",
+  "symbols": [
+    "VPB",
+    "VCB",
+    "MWG",
+    "HPG",
+    "FPT",
+    "DGW",
+    "TCB",
+    "MBB"
+  ],
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "seed_semantics": "One torch seed per eight-stock batch; seed paths differ from the batch anchored 2026-10-30",
+  "input_sha256_by_stock": {
+    "VPB": "ce4622d565de2e3d18958e3abfca53e03f930afe02f5d07865c89cab6c918a5c",
+    "VCB": "ed4ebdf1046a3e6667003e1f5d5d3223f7fddd74defe6a4713ffaeafce7a1520",
+    "MWG": "b22d9024fb4167681024cdf38f92f3914c38a2046443c4552bb3aa67727bb3f9",
+    "HPG": "8e1fea16b2f6e9644f3669b55c26462133757256d225afbcdfa4e852a89727d5",
+    "FPT": "5252cd6ed29961fc041de4188c4ea60a88478eba3b1b2b29ab977e0d98bea5f1",
+    "DGW": "16fba3524cb3110e6d2dc1314fa4529480bcf697c1f0afb80418810d90e3a54f",
+    "TCB": "49e74a0f0a6cca267f5e72dc888ce701bcc70fd3e75aa236ce279a2a61a57bb5",
+    "MBB": "d337532a6c4095a8ce5611142dd1ae00fd758061ad5e0e08e36f48eafc9db85d"
+  },
+  "latest_session": {
+    "VPB": "2026-11-02",
+    "VCB": "2026-11-02",
+    "MWG": "2026-11-02",
+    "HPG": "2026-11-02",
+    "FPT": "2026-11-02",
+    "DGW": "2026-11-02",
+    "TCB": "2026-11-02",
+    "MBB": "2026-11-02"
+  },
+  "lookback": 90,
+  "horizon": 10,
+  "temperature": 1.0,
+  "top_p": 0.9,
+  "sample_count": 1,
+  "device": "cpu",
+  "torch_threads": 4,
+  "upstream_commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+  "model_revision": "901c26c1332695a2a8f243eb2f37243a37bea320",
+  "tokenizer_revision": "0e0117387f39004a9016484a186a908917e22426",
+  "forecast_csv_sha256": "d70a147a93e744309786770f645774e87b61d63c93368f1bfac390ea6eb877c9",
+  "method_limit": "Sample frequency over 5 paths is not a calibrated event probability; checkpoint training cutoff is not independently established."
+}
